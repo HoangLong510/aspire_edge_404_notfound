@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "839861861426",
+    "project_id": "aspireedge-404-not-found-ab390",
+    "storage_bucket": "aspireedge-404-not-found-ab390.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:839861861426:android:b47c552189e1f65ca8902b",
+        "android_client_info": {
+          "package_name": "com.example.aspire_edge_404_notfound"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwn-gpef_f7gZWeNzwfumW0zbbSPJwtcs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyCY2Hyr6GdPGunrPZKnVEBfwPgSuGP7ylc</string>
+	<key>GCM_SENDER_ID</key>
+	<string>839861861426</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.aspireEdge404Notfound</string>
+	<key>PROJECT_ID</key>
+	<string>aspireedge-404-not-found-ab390</string>
+	<key>STORAGE_BUCKET</key>
+	<string>aspireedge-404-not-found-ab390.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:839861861426:ios:566916577c8c93c0a8902b</string>
+</dict>
+</plist>
