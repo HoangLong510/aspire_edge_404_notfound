@@ -25,35 +25,26 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _selectedTierKey;
   bool _isLoading = false;
 
-  // --- Logic đăng ký đã được CẬP NHẬT HOÀN CHỈNH ---
   Future<void> _registerUser() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
       setState(() => _isLoading = false);
       return;
     }
 
     try {
-      // 1. Tạo người dùng mới. Firebase sẽ tự động đăng nhập người dùng này.
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          );
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
       String userId = userCredential.user!.uid;
 
-      // (Tùy chọn) Gửi email xác thực nếu bạn cần
-      // if (userCredential.user != null && !userCredential.user!.emailVerified) {
-      //   await userCredential.user!.sendEmailVerification();
-      // }
-
-      // 2. Lưu thông tin bổ sung của người dùng vào Firestore.
       await FirebaseFirestore.instance.collection('Users').doc(userId).set({
         'User_Id': userId,
         'Name': _nameController.text.trim(),
@@ -63,21 +54,14 @@ class _RegisterPageState extends State<RegisterPage> {
       });
 
       if (mounted) {
-        // 3. ĐĂNG XUẤT người dùng ngay lập tức.
         await FirebaseAuth.instance.signOut();
-
-        // 4. Hiển thị thông báo cho người dùng biết họ cần đăng nhập.
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Registration successful! Please log in.'),
             backgroundColor: Colors.green,
           ),
         );
-
-        // 5. Điều hướng người dùng về trang đăng nhập và xóa các trang cũ.
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } on FirebaseAuthException catch (e) {
       String message = 'An error occurred. Check the console for details.';
@@ -90,7 +74,6 @@ class _RegisterPageState extends State<RegisterPage> {
         SnackBar(content: Text(message), backgroundColor: Colors.red),
       );
     } finally {
-      // Luôn đảm bảo tắt loading indicator
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -107,17 +90,13 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  // Helper function để tạo InputDecoration
   InputDecoration _buildInputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: Theme.of(context).primaryColor),
       filled: true,
       fillColor: Colors.grey.withOpacity(0.1),
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 18.0,
-        horizontal: 12.0,
-      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 12.0),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -141,42 +120,33 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header
                 Text(
                   'Create Account',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Join us to start your journey.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
-
-                // Các trường nhập liệu
                 TextFormField(
                   controller: _nameController,
-                  decoration: _buildInputDecoration(
-                    'Full Name',
-                    Icons.person_outline,
-                  ),
-                  validator: (v) =>
-                      v!.isEmpty ? 'Please enter your full name' : null,
+                  decoration: _buildInputDecoration('Full Name', Icons.person_outline),
+                  validator: (v) => v!.isEmpty ? 'Please enter your full name' : null,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,
-                  decoration: _buildInputDecoration(
-                    'E-mail',
-                    Icons.email_outlined,
-                  ),
+                  decoration: _buildInputDecoration('E-mail', Icons.email_outlined),
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) => v!.isEmpty || !v.contains('@')
                       ? 'Please enter a valid email'
@@ -185,22 +155,15 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: _buildInputDecoration(
-                    'Password',
-                    Icons.lock_outline,
-                  ),
+                  decoration: _buildInputDecoration('Password', Icons.lock_outline),
                   obscureText: true,
-                  validator: (v) => v!.length < 6
-                      ? 'Password must be at least 6 characters'
-                      : null,
+                  validator: (v) =>
+                      v!.length < 6 ? 'Password must be at least 6 characters' : null,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _confirmPasswordController,
-                  decoration: _buildInputDecoration(
-                    'Confirm Password',
-                    Icons.lock_outline,
-                  ),
+                  decoration: _buildInputDecoration('Confirm Password', Icons.lock_outline),
                   obscureText: true,
                   validator: (v) =>
                       v!.isEmpty ? 'Please confirm your password' : null,
@@ -208,10 +171,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _phoneController,
-                  decoration: _buildInputDecoration(
-                    'Phone Number',
-                    Icons.phone_outlined,
-                  ),
+                  decoration: _buildInputDecoration('Phone Number', Icons.phone_outlined),
                   keyboardType: TextInputType.phone,
                   validator: (v) =>
                       v!.isEmpty ? 'Please enter your phone number' : null,
@@ -219,25 +179,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
                   value: _selectedTierKey,
-                  decoration: _buildInputDecoration(
-                    'I am a...',
-                    Icons.school_outlined,
-                  ),
+                  decoration: _buildInputDecoration('I am a...', Icons.school_outlined),
                   items: _tierOptions.entries
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ),
-                      )
+                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
                       .toList(),
                   onChanged: (v) => setState(() => _selectedTierKey = v),
-                  validator: (v) =>
-                      v == null ? 'Please select an option' : null,
+                  validator: (v) => v == null ? 'Please select an option' : null,
                 ),
                 const SizedBox(height: 40),
-
-                // Nút bấm
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
@@ -247,28 +196,20 @@ class _RegisterPageState extends State<RegisterPage> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                              borderRadius: BorderRadius.circular(12)),
                           elevation: 5,
                         ),
                         child: const Text(
                           'Register',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                 const SizedBox(height: 24),
-
-                // Phần chuyển sang Login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "Already have an account?",
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
+                    Text("Already have an account?",
+                        style: TextStyle(color: Colors.grey[700])),
                     TextButton(
                       onPressed: () =>
                           Navigator.of(context).pushReplacementNamed('/login'),
