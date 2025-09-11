@@ -385,41 +385,6 @@ class CareerPathPage extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final paths = snapshot.data!.docs;
-                if (paths.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.route,
-                            size: 56,
-                            color: primary.withOpacity(0.6),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            "Chưa có lộ trình nào",
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Hãy thêm các level để hoàn thiện roadmap nghề nghiệp.",
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
                 return SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
                   child: Center(
@@ -427,16 +392,38 @@ class CareerPathPage extends StatelessWidget {
                       constraints: const BoxConstraints(maxWidth: 1040),
                       child: Column(
                         children: [
-                          _sectionHeader(),
+                          _sectionHeader(), // luôn hiển thị -> có nút Add Level cho admin
                           const SizedBox(height: 16),
-                          // timeline list
-                          ListView.separated(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: paths.length,
-                            separatorBuilder: (ctx, i) => _arrowSeparator(),
-                            itemBuilder: (ctx, i) => _pathCard(paths[i]),
-                          ),
+
+                          if (paths.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.route, size: 56, color: primary.withOpacity(0.6)),
+                                  const SizedBox(height: 12),
+                                  Text("Chưa có lộ trình nào",
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Hãy thêm các level để hoàn thiện roadmap nghề nghiệp.",
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              physics: const NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: paths.length,
+                              separatorBuilder: (ctx, i) => _arrowSeparator(),
+                              itemBuilder: (ctx, i) => _pathCard(paths[i]),
+                            ),
                         ],
                       ),
                     ),
