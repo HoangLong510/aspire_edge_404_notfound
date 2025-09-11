@@ -15,6 +15,7 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
   final _levelNameController = TextEditingController();
   final _salaryController = TextEditingController();
   final _descController = TextEditingController();
+  final _skillsController = TextEditingController();
 
   int _nextOrder = 1;
   String? _careerTitle;
@@ -26,6 +27,21 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
     _loadCareerInfo();
     _loadNextOrder();
   }
+
+  @override
+  void dispose() {
+    _levelNameController.dispose();
+    _salaryController.dispose();
+    _descController.dispose();
+    _skillsController.dispose();
+    super.dispose();
+  }
+
+  List<String> _toSkillsArray(String raw) => raw
+      .split(RegExp(r'[,\n]'))
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
 
   Future<void> _loadCareerInfo() async {
     final doc = await FirebaseFirestore.instance
@@ -74,6 +90,7 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
       "Level_Order": _nextOrder,
       "Salary_Range": _salaryController.text.trim(),
       "Description": _descController.text.trim(),
+      "Skills": _toSkillsArray(_skillsController.text),
     };
 
     await FirebaseFirestore.instance
@@ -87,6 +104,7 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
       _levelNameController.clear();
       _salaryController.clear();
       _descController.clear();
+      _skillsController.clear();
       _loading = false;
     });
 
@@ -333,14 +351,10 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                               const SizedBox(height: 12),
                               // Skills (UI only; nếu muốn lưu hãy thêm 1 dòng ở _addPath)
                               TextFormField(
-                                // Tạo thêm controller tạm (UI only) — không ảnh hưởng logic cũ
-                                // Bạn có thể tạo controller riêng nếu muốn dùng nhiều nơi.
-                                // Ở đây dùng TextEditingController tạm qua TextEditingController() cho gọn.
-                                controller: TextEditingController(),
+                                controller: _skillsController,
                                 decoration: deco(
                                   "Skills (optional)",
-                                  hint:
-                                      "Comma-separated: Teamwork, Clinical Skills, Communication",
+                                  hint: "Comma-separated: Teamwork, Clinical Skills, Communication",
                                   icon: Icons.tips_and_updates_outlined,
                                 ),
                               ),
