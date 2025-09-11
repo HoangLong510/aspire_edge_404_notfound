@@ -1,4 +1,5 @@
 import 'package:aspire_edge_404_notfound/layouts/main_layout.dart';
+import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home_page.dart';
 import 'package:aspire_edge_404_notfound/pages/login_page.dart';
@@ -40,6 +41,8 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
 
         '/change-password': (context) => const ChangePasswordPage(),
+
+        '/career_bank': (context) => MainLayout(body: CareerManagePage(), currentPageRoute: "/career_bank"),
       },
     );
   }
