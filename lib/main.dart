@@ -4,10 +4,13 @@ import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
 import 'package:aspire_edge_404_notfound/pages/coaching_tools_page.dart';
+import 'package:aspire_edge_404_notfound/pages/create_quiz_page.dart';
+import 'package:aspire_edge_404_notfound/pages/edit_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/feedback_form_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home_page.dart';
 import 'package:aspire_edge_404_notfound/pages/login_page.dart';
 import 'package:aspire_edge_404_notfound/pages/profile_page.dart';
+import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
 import 'package:aspire_edge_404_notfound/pages/resource_hub_page.dart';
 import 'package:aspire_edge_404_notfound/pages/testimonials_page.dart';
@@ -33,7 +36,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: "AspireEdge",
+      title: "Aspire Edge",
       theme: ThemeData(
         primaryColor: Colors.blue,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
@@ -45,8 +48,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
-        '/forgot_password': (context) => const ChangePasswordPage(),
-
+        '/change-password': (context) => const ChangePasswordPage(),
 
         '/change-password': (context) => const ChangePasswordPage(),
 
@@ -57,6 +59,12 @@ class MyApp extends StatelessWidget {
             withLayout(const CareerBankPage(), '/career_bank'),
         '/career_quiz': (context) =>
             withLayout(const CareerQuizPage(), '/career_quiz'),
+        '/create_quiz': (context) =>
+            withLayout(const CreateQuizPage(), '/create_quiz'),
+        '/edit_quiz': (context) =>
+            withLayout(const EditQuizPage(), '/edit_quiz'),
+        '/quiz_management': (context) =>
+            withLayout(const QuizManagementPage(), '/quiz_management'),
         '/coaching_tools': (context) =>
             withLayout(const CoachingToolsPage(), '/coaching_tools'),
         '/resource_hub': (context) =>

@@ -178,7 +178,7 @@ class _MainLayoutState extends State<MainLayout> {
             backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
             child: Icon(Icons.person, color: Theme.of(context).primaryColor),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
