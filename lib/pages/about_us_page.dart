@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class AboutUsPage extends StatefulWidget {
   const AboutUsPage({super.key});
@@ -9,13 +10,7 @@ class AboutUsPage extends StatefulWidget {
 }
 
 class _AboutUsPageState extends State<AboutUsPage> {
-  late GoogleMapController mapController;
-
-  final LatLng _officeLocation = const LatLng(10.7837, 106.6520);
-
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
+  static const LatLng _officeLatLng = LatLng(10.807730, 106.660864);
 
   @override
   Widget build(BuildContext context) {
@@ -24,31 +19,25 @@ class _AboutUsPageState extends State<AboutUsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ==== Hero Header ====
+            // ==== Hero Header (nền trắng + logo to) ====
             Container(
               width: double.infinity,
-              height: 220, // cao hơn
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue, Colors.lightBlueAccent],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.network(
                     "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757581315/image-Photoroom_vrxff8.png",
-                    height: 140, // logo to hơn
+                    height: 200, // 👈 logo to hơn
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const Text(
                     "About Us",
                     style: TextStyle(
-                      fontSize: 32, // chữ to hơn
+                      fontSize: 34,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black87,
                       letterSpacing: 1.5,
                     ),
                   ),
@@ -90,15 +79,16 @@ class _AboutUsPageState extends State<AboutUsPage> {
             ),
             const SizedBox(height: 16),
 
-            // ==== Members ====
+            // ==== Members (Grid 2 cột) ====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: GridView.count(
                 crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
+                shrinkWrap: true,
+                childAspectRatio: 0.8,
+                physics: const NeverScrollableScrollPhysics(),
                 children: const [
                   _TeamMember(
                     name: "Hoàng Gia Huy",
@@ -143,25 +133,35 @@ class _AboutUsPageState extends State<AboutUsPage> {
             ),
             const SizedBox(height: 12),
 
-            // Google Map
+            // ==== OpenStreetMap ====
             SizedBox(
-              height: 250,
-              child: GoogleMap(
-                onMapCreated: _onMapCreated,
-                initialCameraPosition: CameraPosition(
-                  target: _officeLocation,
-                  zoom: 16,
+              height: 300,
+              child: FlutterMap(
+                options: MapOptions(
+                  initialCenter: _officeLatLng,
+                  initialZoom: 16,
                 ),
-                markers: {
-                  Marker(
-                    markerId: const MarkerId("office"),
-                    position: _officeLocation,
-                    infoWindow: const InfoWindow(
-                      title: "AspireEdge Office",
-                      snippet: "21Bis Hau Giang, Tan Binh, HCMC",
-                    ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    subdomains: const ['a', 'b', 'c'],
                   ),
-                },
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _officeLatLng,
+                        width: 80,
+                        height: 80,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
@@ -190,8 +190,10 @@ class _AboutUsPageState extends State<AboutUsPage> {
               icon: const Icon(Icons.mail_outline),
               label: const Text("Contact Us"),
               style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -232,30 +234,38 @@ class _TeamMember extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 5,
+      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        height: 170,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              backgroundImage: NetworkImage(avatarUrl),
-              radius: 45, // avatar to hơn
+            CircleAvatar(backgroundImage: NetworkImage(avatarUrl), radius: 35),
+            const SizedBox(height: 8),
+            Flexible(
+              child: Text(
+                name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              name,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               role,
               textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
           ],
         ),

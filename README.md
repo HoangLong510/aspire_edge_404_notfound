@@ -48,7 +48,7 @@ It empowers users to:
 
 ### 1️⃣ Clone the repository
 ```bash
-git clone https://github.com/your-username/aspire_edge_404_notfound.git
+git clone https://github.com/HoangLong510/aspire_edge_404_notfound
 
 2️⃣ Install dependencies
 flutter pub get
