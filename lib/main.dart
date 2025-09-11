@@ -1,6 +1,5 @@
-
-
 import 'package:aspire_edge_404_notfound/layouts/main_layout.dart';
+import 'package:aspire_edge_404_notfound/pages/about_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/achievements_slider_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
 import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
@@ -56,15 +55,14 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/change-password': (context) => const ChangePasswordPage(),
 
-
         '/achievements': (context) => const AchievementsSliderPage(),
         '/seed_achievements': (context) =>
             withLayout(const SeedAchievementsPage(), '/seed_achievements'),
 
-        '/change-password': (context) => const ChangePasswordPage(),
-
-
-        '/career_bank': (context) => MainLayout(body: CareerManagePage(), currentPageRoute: "/career_bank"),
+        '/career_bank': (context) => MainLayout(
+          body: CareerManagePage(),
+          currentPageRoute: "/career_bank",
+        ),
         '/': (context) => withLayout(const HomePage(), '/'),
         '/profile': (context) => withLayout(const ProfilePage(), '/profile'),
         '/career_quiz': (context) =>
@@ -83,6 +81,7 @@ class MyApp extends StatelessWidget {
             withLayout(const TestimonialsPage(), '/testimonials'),
         '/feedback_form': (context) =>
             withLayout(const FeedbackFormPage(), '/feedback_form'),
+        '/about_us': (context) => withLayout(const AboutUsPage(), '/about_us'),
         '/admin_panel': (context) =>
             withLayout(const AdminPanelPage(), '/admin_panel'),
 
