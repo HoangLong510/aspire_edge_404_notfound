@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// Một class dữ liệu đơn giản để code dễ đọc và an toàn hơn
 class _DrawerItem {
   final String title;
   final IconData icon;
@@ -25,38 +24,46 @@ class AppDrawer extends StatelessWidget {
     required this.email,
   });
 
-  // Danh sách các mục trong drawer, giờ đây sử dụng class _DrawerItem
   static final List<_DrawerItem> _drawerItems = [
-    const _DrawerItem(title: 'Home', icon: Icons.home_rounded, route: '/home'),
+    const _DrawerItem(
+      title: 'Home',
+      icon: Icons.home_rounded,
+      route: '/',
+    ),
     const _DrawerItem(
       title: 'Career Bank',
       icon: Icons.business_center_rounded,
       route: '/career_bank',
     ),
     const _DrawerItem(
-      title: 'Admission & Coaching Tools',
+      title: 'Coaching Tools',
       icon: Icons.school_rounded,
-      route: '/admission_tools',
+      route: '/coaching_tools',
     ),
     const _DrawerItem(
       title: 'Resources Hub',
       icon: Icons.collections_bookmark_rounded,
-      route: '/resources_hub',
+      route: '/resource_hub',
     ),
     const _DrawerItem(
-      title: 'Interest Quiz',
+      title: 'Career Quiz',
       icon: Icons.quiz_rounded,
-      route: '/interest_quiz',
-    ),
-    const _DrawerItem(
-      title: 'Multimedia Guides',
-      icon: Icons.video_library_rounded,
-      route: '/multimedia_guides',
+      route: '/career_quiz',
     ),
     const _DrawerItem(
       title: 'Testimonials',
       icon: Icons.star_rate_rounded,
       route: '/testimonials',
+    ),
+    const _DrawerItem(
+      title: 'Feedback',
+      icon: Icons.feedback_rounded,
+      route: '/feedback_form',
+    ),
+    const _DrawerItem(
+      title: 'Profile',
+      icon: Icons.person_rounded,
+      route: '/profile',
     ),
   ];
 
@@ -73,7 +80,6 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  // Widget riêng cho phần header của drawer
   Widget _buildDrawerHeader(BuildContext context) {
     final Color primaryColor = Theme.of(context).primaryColor;
     return UserAccountsDrawerHeader(
@@ -90,7 +96,6 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  // Widget riêng cho mỗi mục trong drawer
   Widget _buildDrawerTile(BuildContext context, _DrawerItem item) {
     final bool isSelected = currentPageRoute == item.route;
     final Color primaryColor = Theme.of(context).primaryColor;
@@ -115,7 +120,7 @@ class AppDrawer extends StatelessWidget {
         selectedTileColor: activeColor.withOpacity(0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         onTap: () {
-          Navigator.pop(context); // Luôn đóng drawer trước
+          Navigator.pop(context);
           if (!isSelected) {
             Navigator.pushReplacementNamed(context, item.route);
           }
