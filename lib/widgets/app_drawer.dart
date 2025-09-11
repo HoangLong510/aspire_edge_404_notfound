@@ -17,19 +17,18 @@ class AppDrawer extends StatelessWidget {
   final String fullName;
   final String email;
 
+  final bool isAdmin;
+
   const AppDrawer({
     super.key,
     required this.currentPageRoute,
     required this.fullName,
     required this.email,
+    this.isAdmin = false,
   });
 
   static final List<_DrawerItem> _drawerItems = [
-    const _DrawerItem(
-      title: 'Home',
-      icon: Icons.home_rounded,
-      route: '/',
-    ),
+    const _DrawerItem(title: 'Home', icon: Icons.home_rounded, route: '/'),
     const _DrawerItem(
       title: 'Career Bank',
       icon: Icons.business_center_rounded,
@@ -67,15 +66,45 @@ class AppDrawer extends StatelessWidget {
     ),
   ];
 
+  static final List<_DrawerItem> _adminItems = [
+    const _DrawerItem(
+      title: 'Admin Panel',
+      icon: Icons.admin_panel_settings_rounded,
+      route: '/admin_panel',
+    ),
+    const _DrawerItem(
+      title: 'Seed Achievements',
+      icon: Icons.storage_rounded, 
+      route: '/seed_achievements',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final items = <Widget>[
+      _buildDrawerHeader(context),
+      ..._drawerItems.map((item) => _buildDrawerTile(context, item)),
+    ];
+
+    if (isAdmin) {
+      items.add(const Divider(height: 12));
+      items.add(Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
+        child: Text(
+          'Admin',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
+      ));
+      items.addAll(_adminItems.map((item) => _buildDrawerTile(context, item)));
+    }
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: [
-          _buildDrawerHeader(context),
-          ..._drawerItems.map((item) => _buildDrawerTile(context, item)),
-        ],
+        children: items,
       ),
     );
   }
