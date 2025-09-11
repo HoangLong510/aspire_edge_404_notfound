@@ -53,8 +53,6 @@ class MyApp extends StatelessWidget {
         '/career_bank': (context) => MainLayout(body: CareerManagePage(), currentPageRoute: "/career_bank"),
         '/': (context) => withLayout(const HomePage(), '/'),
         '/profile': (context) => withLayout(const ProfilePage(), '/profile'),
-        '/career_bank': (context) =>
-            withLayout(const CareerBankPage(), '/career_bank'),
         '/career_quiz': (context) =>
             withLayout(const CareerQuizPage(), '/career_quiz'),
         '/coaching_tools': (context) =>
