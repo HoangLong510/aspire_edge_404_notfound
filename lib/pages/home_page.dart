@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class HomePage extends StatelessWidget {
@@ -17,8 +17,6 @@ class HomePage extends StatelessWidget {
           SliverToBoxAdapter(child: _buildInterviewQuestions(context).animate().slideX(begin: 0.2, duration: 600.ms)),
           SliverToBoxAdapter(child: _buildBlog(context).animate().fadeIn(duration: 600.ms)),
           SliverToBoxAdapter(child: _buildFeedback().animate().slideY(begin: 0.2, duration: 600.ms)),
-
-          // Quick Interests Section
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -35,7 +33,6 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // Banner
   Widget _buildBanner() => Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(20),
@@ -48,77 +45,77 @@ class HomePage extends StatelessWidget {
           ),
         ),
         child: const Text(
-          "Xin chào 👋\nKhám phá cơ hội nghề nghiệp của bạn",
+          "Hello 👋\nExplore your career opportunities",
           style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
       );
 
-  // Stats
+
   Widget _buildStats() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Text("Thành tựu cộng đồng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text("Community Achievements", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _StatCard(icon: Icons.people, label: "Người dùng", value: "12K+"),
-              _StatCard(icon: Icons.work, label: "Có việc làm", value: "86%"),
-              _StatCard(icon: Icons.emoji_events, label: "Thành công", value: "2.7K+"),
+              _StatCard(icon: Icons.people, label: "Users", value: "12K+"),
+              _StatCard(icon: Icons.work, label: "Employed", value: "86%"),
+              _StatCard(icon: Icons.emoji_events, label: "Success Stories", value: "2.7K+"),
             ],
           ),
         ],
       );
 
-  // CV Tips
+
   Widget _buildCVTips(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Mẹo CV nổi bật", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text("CV Tips", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           _BlogCard(
             image: "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757492366/career-advice-illustration_335657-4661_i6aylr.avif",
-            title: "Cách viết CV ấn tượng trong 2025",
-            subtitle: "5 bước để HR không bỏ qua hồ sơ của bạn",
+            title: "How to Write an Impressive CV in 2025",
+            subtitle: "5 steps to make HR notice your application",
             onTap: () => Navigator.pushNamed(context, "/cv_detail"),
           ),
         ],
       );
 
-  // Interview Questions
+  
   Widget _buildInterviewQuestions(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Câu hỏi phỏng vấn thường gặp", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text("Common Interview Questions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           _QnACard(
-            question: "Hãy giới thiệu về bản thân?",
-            answer: "Giới thiệu ngắn gọn: học vấn, kinh nghiệm, lý do phù hợp.",
+            question: "Tell me about yourself?",
+            answer: "Introduce briefly: education, key experience, and why you fit the role.",
             onTap: () => Navigator.pushNamed(context, "/interview_detail"),
           ),
         ],
       );
 
-  // Blog
+  
   Widget _buildBlog(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Gợi ý cho bạn", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text("Recommended for You", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           _BlogCard(
             image: "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757492366/career-advice-abstract-concept-vector-illustration_107173-20083_qdqawl.avif",
-            title: "5 bí quyết phỏng vấn thành công",
-            subtitle: "Chia sẻ từ chuyên gia nhân sự",
+            title: "5 Secrets to a Successful Interview",
+            subtitle: "Insights from HR experts",
             onTap: () => Navigator.pushNamed(context, "/blog_detail"),
           ),
         ],
       );
 
-  // Feedback
+
   Widget _buildFeedback() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Câu chuyện thành công", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text("Success Stories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           SizedBox(
             height: 160,
@@ -127,12 +124,12 @@ class HomePage extends StatelessWidget {
                 _FeedbackCard(
                   avatar: "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757490262/samples/woman-on-a-football-field.jpg",
                   name: "Minh Anh",
-                  story: "Từ sinh viên IT đến lập trình viên Google 🌍",
+                  story: "From IT student to Google Software Engineer 🌍",
                 ),
                 _FeedbackCard(
                   avatar: "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757490263/samples/upscale-face-1.jpg",
                   name: "Thu Hà",
-                  story: "Ứng dụng đã giúp mình có định hướng nghề nghiệp rõ ràng hơn 💼",
+                  story: "This app gave me a clearer career direction 💼",
                 ),
               ],
             ),
@@ -140,26 +137,26 @@ class HomePage extends StatelessWidget {
         ],
       );
 
-  // Quick Interests
+
   Widget _buildQuickInterests(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Khám phá theo sở thích", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text("Explore by Interests", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              _InterestChip(label: "Công nghệ 💻", onTap: () {
+              _InterestChip(label: "Technology 💻", onTap: () {
                 Navigator.pushNamed(context, "/career_bank", arguments: "tech");
               }),
-              _InterestChip(label: "Kinh doanh 📈", onTap: () {
+              _InterestChip(label: "Business 📈", onTap: () {
                 Navigator.pushNamed(context, "/career_bank", arguments: "business");
               }),
-              _InterestChip(label: "Nghệ thuật 🎨", onTap: () {
+              _InterestChip(label: "Arts 🎨", onTap: () {
                 Navigator.pushNamed(context, "/career_bank", arguments: "art");
               }),
-              _InterestChip(label: "Khoa học 🔬", onTap: () {
+              _InterestChip(label: "Science 🔬", onTap: () {
                 Navigator.pushNamed(context, "/career_bank", arguments: "science");
               }),
             ],
@@ -167,18 +164,16 @@ class HomePage extends StatelessWidget {
         ],
       );
 
-  // CTA
+  
   Widget _buildCTA(BuildContext context) => ElevatedButton(
         onPressed: () => Navigator.pushNamed(context, "/career_quiz"),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: const Text("Khám phá con đường của bạn 🚀", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        child: const Text("Discover Your Path 🚀", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       );
 }
-
-// ============= Sub Widgets =============
 
 class _StatCard extends StatelessWidget {
   final IconData icon;

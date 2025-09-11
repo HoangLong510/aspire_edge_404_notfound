@@ -55,14 +55,14 @@ class AppDrawer extends StatelessWidget {
       route: '/testimonials',
     ),
     const _DrawerItem(
+      title: 'About Us',
+      icon: Icons.info_rounded,
+      route: '/about_us',
+    ),
+    const _DrawerItem(
       title: 'Feedback',
       icon: Icons.feedback_rounded,
       route: '/feedback_form',
-    ),
-    const _DrawerItem(
-      title: 'Profile',
-      icon: Icons.person_rounded,
-      route: '/profile',
     ),
   ];
 
@@ -74,7 +74,7 @@ class AppDrawer extends StatelessWidget {
     ),
     const _DrawerItem(
       title: 'Seed Achievements',
-      icon: Icons.storage_rounded, 
+      icon: Icons.storage_rounded,
       route: '/seed_achievements',
     ),
   ];
@@ -88,24 +88,23 @@ class AppDrawer extends StatelessWidget {
 
     if (isAdmin) {
       items.add(const Divider(height: 12));
-      items.add(Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
-        child: Text(
-          'Admin',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).primaryColor,
+      items.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
+          child: Text(
+            'Admin',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).primaryColor,
+            ),
           ),
         ),
-      ));
+      );
       items.addAll(_adminItems.map((item) => _buildDrawerTile(context, item)));
     }
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: items,
-      ),
+      child: ListView(padding: EdgeInsets.zero, children: items),
     );
   }
 
