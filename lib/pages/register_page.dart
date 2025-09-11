@@ -19,8 +19,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   final Map<String, String> _tierOptions = {
     'student': 'Student',
-    'postgraduate': 'Postgraduate',
-    'expert': 'Expert',
+    'postgraduate': 'Undergraduates/Postgraduates',
+    'professionals': 'Professionals',
   };
   String? _selectedTierKey;
   bool _isLoading = false;
