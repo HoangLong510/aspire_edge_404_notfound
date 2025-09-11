@@ -1,6 +1,6 @@
 import 'package:aspire_edge_404_notfound/layouts/main_layout.dart';
+import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
 import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
-import 'package:aspire_edge_404_notfound/pages/career_bank_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
 import 'package:aspire_edge_404_notfound/pages/coaching_tools_page.dart';
@@ -48,9 +48,10 @@ class MyApp extends StatelessWidget {
         '/forgot_password': (context) => const ChangePasswordPage(),
 
 
+        '/change-password': (context) => const ChangePasswordPage(),
+
+        '/career_bank': (context) => MainLayout(body: CareerManagePage(), currentPageRoute: "/career_bank"),
         '/': (context) => withLayout(const HomePage(), '/'),
-        '/change_password': (context) =>
-            withLayout(const ChangePasswordPage(), '/change_password'),
         '/profile': (context) => withLayout(const ProfilePage(), '/profile'),
         '/career_bank': (context) =>
             withLayout(const CareerBankPage(), '/career_bank'),
