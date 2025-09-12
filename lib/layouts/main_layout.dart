@@ -106,10 +106,11 @@ class _MainLayoutState extends State<MainLayout> {
         final String fullName = (userData['Name'] ?? 'Guest').toString();
         final String email = _auth.currentUser?.email ?? 'No email';
         final String avatarUrl = (userData['AvatarUrl'] ?? '').toString();
+        final String tier = (userData['Tier'] ?? '').toString();
 
         // Bọc bằng NotificationsListener nếu có uid
         final String? uid = _auth.currentUser?.uid;
-        Widget scaffold = _buildMainScaffold(fullName, email, avatarUrl);
+        Widget scaffold = _buildMainScaffold(fullName, email, avatarUrl, tier);
         if (uid != null) {
           scaffold = NotificationsListener(uid: uid, child: scaffold);
         }
@@ -118,7 +119,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Scaffold _buildMainScaffold(String fullName, String email, String avatarUrl) {
+  Scaffold _buildMainScaffold(String fullName, String email, String avatarUrl, String tier) {
     final color = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -149,6 +150,7 @@ class _MainLayoutState extends State<MainLayout> {
         fullName: fullName,
         email: email,
         avatarUrl: avatarUrl,
+         isAdmin: tier.toLowerCase() == 'admin',
       ),
       body: widget.body,
       backgroundColor: color.background,
