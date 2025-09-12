@@ -27,8 +27,7 @@ import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
 import 'package:aspire_edge_404_notfound/pages/resource_hub_page.dart';
 import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
-import 'package:aspire_edge_404_notfound/pages/testimonials_page.dart';
-
+import 'package:aspire_edge_404_notfound/pages/stories/personal_stories_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -77,13 +76,13 @@ class _MyAppState extends State<MyApp> {
             .doc(u.uid)
             .snapshots()
             .listen((snap) {
-          final data = snap.data();
-          _tier = (data?['Tier'] ?? '').toString();
-          final matches = (data?['CareerMatches'] as List?) ?? const [];
-          _hasMatches = matches.isNotEmpty;
-          _userDocReady = true;
-          if (mounted) setState(() {});
-        });
+              final data = snap.data();
+              _tier = (data?['Tier'] ?? '').toString();
+              final matches = (data?['CareerMatches'] as List?) ?? const [];
+              _hasMatches = matches.isNotEmpty;
+              _userDocReady = true;
+              if (mounted) setState(() {});
+            });
       } else {
         if (mounted) setState(() {});
       }
@@ -120,14 +119,14 @@ class _MyAppState extends State<MyApp> {
 
         // Notifications
         '/notifications': (context) => widget.withLayout(
-              NotificationsInboxPage(
-                  uid: FirebaseAuth.instance.currentUser!.uid),
-              '/notifications',
-            ),
+          NotificationsInboxPage(uid: FirebaseAuth.instance.currentUser!.uid),
+          '/notifications',
+        ),
 
         // Main pages
         '/': (context) => widget.withLayout(const HomePage(), '/'),
-        '/profile': (context) => widget.withLayout(const ProfilePage(), '/profile'),
+        '/profile': (context) =>
+            widget.withLayout(const ProfilePage(), '/profile'),
         '/career_quiz': (context) =>
             widget.withLayout(const CareerQuizPage(), '/career_quiz'),
         '/career_bank': (context) =>
@@ -136,7 +135,10 @@ class _MyAppState extends State<MyApp> {
         // Career matches logic
         '/career_matches': (context) {
           if (isAdmin) {
-            return widget.withLayout(const QuizManagementPage(), '/career_matches');
+            return widget.withLayout(
+              const QuizManagementPage(),
+              '/career_matches',
+            );
           }
           if (_user == null) {
             return widget.withLayout(const CareerQuizPage(), '/career_matches');
@@ -168,8 +170,14 @@ class _MyAppState extends State<MyApp> {
             widget.withLayout(const CoachingToolsPage(), '/coaching_tools'),
         '/resource_hub': (context) =>
             widget.withLayout(const ResourceHubPage(), '/resource_hub'),
-        '/testimonials': (context) =>
-            widget.withLayout(const TestimonialsPage(), '/testimonials'),
+        '/stories': (context) => widget.withLayout(
+          const PersonalStoriesPage(isAdmin: false),
+          '/stories',
+        ),
+        '/stories_admin': (context) => widget.withLayout(
+          const PersonalStoriesPage(isAdmin: true),
+          '/stories_admin',
+        ),
         '/contact_us': (context) =>
             widget.withLayout(const ContactUsPage(), '/contact_us'),
         "/industry_intro": (context) => const IndustryIntroPage(),
@@ -182,14 +190,16 @@ class _MyAppState extends State<MyApp> {
 
         // Achievements
         '/achievements': (context) => const AchievementsSliderPage(),
-        '/seed_achievements': (context) =>
-            widget.withLayout(const SeedAchievementsPage(), '/seed_achievements'),
+        '/seed_achievements': (context) => widget.withLayout(
+          const SeedAchievementsPage(),
+          '/seed_achievements',
+        ),
 
         // Answer quiz page (standalone route)
         '/answer_quiz': (context) => MainLayout(
-              body: const AnswerQuizPage(),
-              currentPageRoute: "/answer_quiz",
-            ),
+          body: const AnswerQuizPage(),
+          currentPageRoute: "/answer_quiz",
+        ),
 
         // Detail pages (không bọc layout nếu bạn muốn full-screen riêng)
         '/cv_detail': (context) => const CVTipDetailPage(),
