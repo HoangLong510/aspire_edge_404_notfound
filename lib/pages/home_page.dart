@@ -151,16 +151,20 @@ class HomePage extends StatelessWidget {
             runSpacing: 12,
             children: [
               _InterestChip(label: "Công nghệ 💻", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "tech");
+                Navigator.pushNamed(context, "/industry_intro",
+                    arguments: {"industry": "Information Technology"});
               }),
-              _InterestChip(label: "Kinh doanh 📈", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "business");
+              _InterestChip(label: "Y tế 📈", onTap: () {
+                Navigator.pushNamed(context, "/industry_intro",
+                    arguments: {"industry":"Healthcare"});
               }),
               _InterestChip(label: "Nghệ thuật 🎨", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "art");
+                Navigator.pushNamed(context, "/industry_intro",
+                    arguments: {"industry": "Art"});
               }),
               _InterestChip(label: "Khoa học 🔬", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "science");
+                Navigator.pushNamed(context, "/industry_intro",
+                    arguments: {"industry": "Science"});
               }),
             ],
           )

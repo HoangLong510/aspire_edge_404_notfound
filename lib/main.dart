@@ -14,7 +14,9 @@ import 'package:aspire_edge_404_notfound/pages/home/blog_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/cv_tip_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/interview_question_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home_page.dart';
+import 'package:aspire_edge_404_notfound/pages/industry_intro_page.dart';
 import 'package:aspire_edge_404_notfound/pages/login_page.dart';
+import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/pages/profile_page.dart';
 import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
@@ -28,6 +30,7 @@ import 'package:flutter/material.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await LocalNoti.init();
   runApp(const MyApp());
 }
 
@@ -55,16 +58,15 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
         '/change-password': (context) => const ChangePasswordPage(),
-
+        '/notifications': (context) =>
+            withLayout(NotificationsInboxPage(uid: FirebaseAuth.instance.currentUser!.uid), '/notifications'),
 
         '/achievements': (context) => const AchievementsSliderPage(),
         '/seed_achievements': (context) =>
             withLayout(const SeedAchievementsPage(), '/seed_achievements'),
 
-        '/change-password': (context) => const ChangePasswordPage(),
-
-
-        '/career_bank': (context) => MainLayout(body: CareerManagePage(), currentPageRoute: "/career_bank"),
+        '/career_bank': (context) =>
+            withLayout(const CareerManagePage(), '/career_bank'),
         '/': (context) => withLayout(const HomePage(), '/'),
         '/profile': (context) => withLayout(const ProfilePage(), '/profile'),
         '/career_quiz': (context) =>
@@ -85,6 +87,7 @@ class MyApp extends StatelessWidget {
             withLayout(const FeedbackFormPage(), '/feedback_form'),
         '/admin_panel': (context) =>
             withLayout(const AdminPanelPage(), '/admin_panel'),
+        "/industry_intro": (context) => const IndustryIntroPage(),
 
         '/cv_detail': (context) => const CVTipDetailPage(),
         '/interview_detail': (context) => const InterviewQuestionDetailPage(),

@@ -1,4 +1,7 @@
+import 'package:aspire_edge_404_notfound/config/industries.dart';
+import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class CareerAddPage extends StatefulWidget {
@@ -11,31 +14,60 @@ class CareerAddPage extends StatefulWidget {
 }
 
 class _CareerAddPageState extends State<CareerAddPage> {
-  final _firestore = FirebaseFirestore.instance;
 
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
-  late TextEditingController _industryController;
   late TextEditingController _descController;
   late TextEditingController _skillsController;
   late TextEditingController _salaryController;
   late TextEditingController _eduController;
+  String? _selectedIndustryId;
+  String? _selectedIndustryName;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.career?['Title']);
-    _industryController = TextEditingController(text: widget.career?['Industry']);
-    _descController = TextEditingController(text: widget.career?['Description']);
-    _skillsController = TextEditingController(text: widget.career?['Skills']);
-    _salaryController = TextEditingController(text: widget.career?['Salary_Range']);
-    _eduController = TextEditingController(text: widget.career?['Education_Path']);
+    final Map<String, dynamic> data =
+        (widget.career?.data() as Map<String, dynamic>?) ?? {};
+
+    final title        = (data['Title'] ?? '').toString();
+    final desc         = (data['Description'] ?? '').toString();
+    final skills       = (data['Skills'] ?? '').toString();
+    final salary       = (data['Salary_Range'] ?? '').toString();
+    final edu          = (data['Education_Path'] ?? '').toString();
+
+    final industryId = (data['IndustryId'] ?? '').toString();
+    final legacy     = (data['Industry'] ?? '').toString();
+
+    String? resolvedId;
+    String? resolvedName;
+
+    if (industryId.isNotEmpty && industryById(industryId) != null) {
+      resolvedId = industryId;
+      resolvedName = industryById(industryId)!.name;
+    } else if (legacy.isNotEmpty && industryByName(legacy) != null) {
+      resolvedId = industryByName(legacy)!.id;
+      resolvedName = industryByName(legacy)!.name;
+    }
+
+    _selectedIndustryId   = resolvedId;
+    _selectedIndustryName = resolvedName;
+
+    _titleController  = TextEditingController(text: title);
+    _descController   = TextEditingController(text: desc);
+    _skillsController = TextEditingController(text: skills);
+    _salaryController = TextEditingController(text: salary);
+    _eduController    = TextEditingController(text: edu);
+
+    _selectedIndustryId   = resolvedId;
+    _selectedIndustryName = resolvedName;
   }
+
+
 
   @override
   void dispose() {
     _titleController.dispose();
-    _industryController.dispose();
     _descController.dispose();
     _skillsController.dispose();
     _salaryController.dispose();
@@ -46,28 +78,52 @@ class _CareerAddPageState extends State<CareerAddPage> {
   Future<void> _saveCareer() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final fs = FirebaseFirestore.instance;
+    final auth = FirebaseAuth.instance;
+
+    final title = _titleController.text.trim();
     final data = {
-      "Title": _titleController.text,
-      "Industry": _industryController.text,
-      "Description": _descController.text,
-      "Skills": _skillsController.text,
-      "Salary_Range": _salaryController.text,
-      "Education_Path": _eduController.text,
+      "Title": title,
+      "IndustryId": _selectedIndustryId,
+      "Industry": _selectedIndustryName, // 👈 giữ legacy cho an toàn
+      "Description": _descController.text.trim(),
+      "Skills": _skillsController.text.trim(),
+      "Salary_Range": _salaryController.text.trim(),
+      "Education_Path": _eduController.text.trim(),
+      "updatedAt": FieldValue.serverTimestamp(),
     };
 
-    if (widget.career == null) {
-      await _firestore.collection("CareerBank").add(data);
+    // Xác định careerId:
+    // - Nếu edit: dùng id cũ để giữ nguyên favorites của user
+    // - Nếu tạo mới: slug từ Title để dùng làm id (ổn định)
+    String careerId;
+    final isEditing = widget.career != null;
+    if (isEditing) {
+      careerId = widget.career!.id;
+      await fs.collection("CareerBank").doc(careerId).update(data);
     } else {
-      await _firestore.collection("CareerBank").doc(widget.career!.id).update(data);
+      careerId = title.toLowerCase().replaceAll(RegExp(r'\s+'), '_'); // slug
+      await fs.collection("CareerBank").doc(careerId).set(data, SetOptions(merge: true));
     }
 
+    // 🔔 Gửi thông báo tới tất cả user đã yêu thích careerId này
+    // (bắn cho cả tạo mới & cập nhật; nếu muốn chỉ bắn khi cập nhật, bạn check isEditing == true)
+    final adminUid = auth.currentUser?.uid ?? 'admin';
+    if (isEditing) {
+      await NotiAdminApi.sendCareerUpdateToFavoriters(
+        adminUid: adminUid,
+        careerId: careerId,
+        careerTitle: title,
+      );
+    }
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lưu nghề thành công")),
+        const SnackBar(content: Text("Lưu nghề & gửi thông báo thành công")),
       );
     }
   }
+
 
   InputDecoration _decoration({
     required String label,
@@ -244,14 +300,35 @@ class _CareerAddPageState extends State<CareerAddPage> {
               textInputAction: TextInputAction.next,
             ),
             gap(),
-            TextFormField(
-              controller: _industryController,
+            DropdownButtonFormField<String>(
+              value: _selectedIndustryId,
+              isExpanded: true,
               decoration: deco(
                 label: "Industry",
-                hint: "e.g., Information Technology",
+                hint: "Select an industry",
                 icon: Icons.business_center_outlined,
               ),
-              textInputAction: TextInputAction.next,
+              items: ([
+                ...INDUSTRIES
+              ]..sort((a, b) => a.order.compareTo(b.order))).map((def) {
+                return DropdownMenuItem<String>(
+                  value: def.id,
+                  child: Row(
+                    children: [
+                      Icon(def.icon, size: 18, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 8),
+                      Flexible(child: Text(def.name, overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (v) {
+                setState(() {
+                  _selectedIndustryId   = v;
+                  _selectedIndustryName = industryById(v)?.name;
+                });
+              },
+              validator: (v) => (v == null || v.isEmpty) ? "Chọn Industry" : null,
             ),
             gap(18),
             sectionTitle("Skills & Salary", icon: Icons.tips_and_updates_outlined),

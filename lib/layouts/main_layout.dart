@@ -1,3 +1,4 @@
+import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/widgets/app_drawer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -109,8 +110,12 @@ class _MainLayoutState extends State<MainLayout> {
         final String email = _auth.currentUser?.email ?? 'No email';
         final String tier = (userData['Tier'] ?? '').toString().toLowerCase();
         final bool isAdmin = tier == 'admin';
+        final String uid = _auth.currentUser!.uid;
 
-        return _buildMainScaffold(fullName, email, isAdmin);
+        return NotificationsListener(
+          uid: uid,
+          child: _buildMainScaffold(fullName, email, isAdmin),
+        );
       },
     );
   }
@@ -126,7 +131,11 @@ class _MainLayoutState extends State<MainLayout> {
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
-        actions: [_buildPopupMenu(fullName, email)],
+        actions: [
+          if (_auth.currentUser != null)
+            NotificationBell(uid: _auth.currentUser!.uid),
+          _buildPopupMenu(fullName, email),
+        ],
       ),
       drawer: AppDrawer(
         currentPageRoute: widget.currentPageRoute,
