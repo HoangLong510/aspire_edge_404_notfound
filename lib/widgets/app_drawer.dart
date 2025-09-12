@@ -64,11 +64,12 @@ class AppDrawer extends StatelessWidget {
     const _DrawerItem(
       title: 'Contact Us',
       icon: Icons.feedback_rounded,
-<<<<<<< HEAD
       route: '/contact_us',
-=======
+    ),
+    const _DrawerItem(
+      title: 'Contact Us',
+      icon: Icons.feedback_rounded,
       route: '/feedback',
->>>>>>> Long/feedback
     ),
   ];
 
