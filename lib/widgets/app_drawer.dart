@@ -64,7 +64,7 @@ class AppDrawer extends StatelessWidget {
     const _DrawerItem(
       title: 'Feedback',
       icon: Icons.feedback_rounded,
-      route: '/feedback_form',
+      route: '/feedback',
     ),
   ];
 
