@@ -1,14 +1,21 @@
 import 'dart:convert';
+import 'package:aspire_edge_404_notfound/constants/env_config.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'career_matches_page.dart';
 
+/// ===========================
+/// OpenAI config
+/// ===========================
+/// Đặt key ở tham số build/run:
+/// flutter run --dart-define=OPENAI_API_KEY=sk-xxx
 const String kOpenAIBaseUrl = 'https://api.openai.com/v1';
 const String kOpenAIModel = 'gpt-4o-mini';
-final String kOpenAIApiKey = dotenv.env['OPENAI_API_KEY'] ?? 'sk-REPLACE_WITH_YOUR_KEY';
+final String kOpenAIApiKey = EnvConfig.openAIApiKey;
 
 class AnswerQuizPage extends StatefulWidget {
   const AnswerQuizPage({super.key});
@@ -63,10 +70,8 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
     });
 
     try {
-      final userSnap = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(_userId)
-          .get();
+      final userSnap =
+          await FirebaseFirestore.instance.collection('Users').doc(_userId).get();
       if (!userSnap.exists) {
         throw Exception('User document not found: Users/$_userId.');
       }
@@ -148,9 +153,8 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
       final primary = Theme.of(context).primaryColor;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Please answer all questions • ${unanswered.length} remaining',
-          ),
+          content:
+              Text('Please answer all questions • ${unanswered.length} remaining'),
           backgroundColor: primary,
         ),
       );
@@ -162,11 +166,14 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
     try {
       final quizPayload = _buildResultPayload();
 
-      final careerSnap = await FirebaseFirestore.instance
-          .collection('CareerBank')
-          .get();
+      final careerSnap =
+          await FirebaseFirestore.instance.collection('CareerBank').get();
+
+      // Sanitize toàn bộ doc để tránh Timestamp/GeoPoint/Ref
       final careers = careerSnap.docs.map((d) {
-        return {'id': d.id, 'doc': d.data()};
+        final raw = d.data();
+        final safe = sanitizeForJson(raw);
+        return {'id': d.id, 'doc': safe};
       }).toList();
 
       final aiResults = await _callOpenAIForCareerMatch(
@@ -211,9 +218,9 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
     required List<Map<String, String>> quizResult,
     required String userTier,
   }) async {
-    if (kOpenAIApiKey == 'sk-REPLACE_WITH_YOUR_KEY' ||
-        kOpenAIApiKey.trim().isEmpty) {
-      throw Exception('Please set kOpenAIApiKey in answer_quiz_page.dart');
+    if (kOpenAIApiKey.trim().isEmpty) {
+      throw Exception(
+          'Missing OPENAI_API_KEY. Pass it via --dart-define=OPENAI_API_KEY=...');
     }
 
     final systemPrompt = '''
@@ -222,12 +229,13 @@ Be decisive and use the full 0–100 range. Keep each assessment short (<= 25 wo
 Return ONLY JSON following the provided schema. No extra commentary.
 ''';
 
+    // Payload gửi cho LLM — nhớ sanitize trước khi encode
     final userPayload = {
       'instruction':
           'Given the user tier and quiz result, compute a suitability score and a concise assessment for EVERY career.',
       'userTier': userTier,
-      'quizResult': quizResult,
-      'careers': careers,
+      'quizResult': quizResult, // chỉ gồm string -> JSON-safe
+      'careers': careers, // đã sanitize ở _submit()
       'required_output_schema': {
         'type': 'object',
         'properties': {
@@ -264,6 +272,8 @@ Return ONLY JSON following the provided schema. No extra commentary.
       },
     };
 
+    final safeUserPayload = sanitizeForJson(userPayload);
+
     final uri = Uri.parse('$kOpenAIBaseUrl/chat/completions');
     final headers = {
       'Authorization': 'Bearer $kOpenAIApiKey',
@@ -278,7 +288,7 @@ Return ONLY JSON following the provided schema. No extra commentary.
         {
           'role': 'user',
           'content':
-              'Return ONLY a strict JSON object following the schema { matches: [{careerId, fitPercent, assessment}] }.\nAssess every career in "careers". Here is the input:\n\n${jsonEncode(userPayload)}',
+              'Return ONLY a strict JSON object following the schema { matches: [{careerId, fitPercent, assessment}] }.\nAssess every career in "careers". Here is the input:\n\n${jsonEncode(safeUserPayload)}',
         },
       ],
     });
@@ -289,34 +299,31 @@ Return ONLY JSON following the provided schema. No extra commentary.
     }
 
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
-    final content = (decoded['choices'] as List).isNotEmpty
-        ? ((decoded['choices'][0]['message']?['content']) ??
-              (decoded['choices'][0]['message']?['delta']?['content']) ??
-              '')
+    final choices = (decoded['choices'] as List?) ?? const [];
+    final content = choices.isNotEmpty
+        ? (choices.first['message']?['content'] ??
+            choices.first['message']?['delta']?['content'] ??
+            '')
         : '';
 
     Map<String, dynamic>? parsed;
     try {
       parsed = jsonDecode(content) as Map<String, dynamic>;
     } catch (_) {
-      final m = RegExp(r'\{[\s\S]*\}').firstMatch(content);
+      final m = RegExp(r'\{[\s\S]*\}').firstMatch(content ?? '');
       if (m == null) throw Exception('LLM did not return valid JSON.');
       parsed = jsonDecode(m.group(0)!) as Map<String, dynamic>;
     }
 
-    final matches = (parsed['matches'] is List)
-        ? parsed['matches'] as List
-        : [];
-    final results = matches.map<Map<String, dynamic>>((m) {
+    final rawMatches = (parsed['matches'] is List) ? parsed['matches'] as List : [];
+    final results = rawMatches.map<Map<String, dynamic>>((m) {
       final id = '${m['careerId'] ?? ''}';
       final percent = _clampInt((m['fitPercent'] ?? 0) as num, 0, 100);
       final assessment = '${m['assessment'] ?? ''}';
       return {'careerId': id, 'fitPercent': percent, 'assessment': assessment};
     }).toList();
 
-    results.sort(
-      (a, b) => (b['fitPercent'] ?? 0).compareTo(a['fitPercent'] ?? 0),
-    );
+    results.sort((a, b) => (b['fitPercent'] ?? 0).compareTo(a['fitPercent'] ?? 0));
     return results;
   }
 
@@ -327,6 +334,10 @@ Return ONLY JSON following the provided schema. No extra commentary.
     return v;
   }
 
+  /// ===========================
+  /// UI helpers
+  /// ===========================
+
   Widget _header(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.primaryColor;
@@ -336,8 +347,6 @@ Return ONLY JSON following the provided schema. No extra commentary.
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [primary.withOpacity(.12), primary.withOpacity(.04)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: primary.withOpacity(.12)),
@@ -345,9 +354,7 @@ Return ONLY JSON following the provided schema. No extra commentary.
       child: Row(
         children: [
           IconButton.outlined(
-            onPressed: _submitting
-                ? null
-                : () => Navigator.of(context).maybePop(),
+            onPressed: _submitting ? null : () => Navigator.of(context).maybePop(),
             tooltip: 'Back',
             style: IconButton.styleFrom(
               foregroundColor: primary,
@@ -373,7 +380,6 @@ Return ONLY JSON following the provided schema. No extra commentary.
               ),
             ),
           ),
-          // (Removed the top Submit button)
         ],
       ),
     );
@@ -413,9 +419,8 @@ Return ONLY JSON following the provided schema. No extra commentary.
   Widget _questionCard(_QItem q) {
     final theme = Theme.of(context);
     final primary = theme.primaryColor;
-    final entries = q.options.entries
-        .where((e) => e.value.trim().isNotEmpty)
-        .toList();
+    final entries =
+        q.options.entries.where((e) => e.value.trim().isNotEmpty).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -634,4 +639,33 @@ class _QItem {
   final Map<String, String> options;
   String? selected;
   final DateTime? createdAt;
+}
+
+/// =======================================================
+/// Utils: Sanitize Firestore types to JSON-safe structures
+/// =======================================================
+dynamic sanitizeForJson(dynamic value) {
+  if (value == null || value is num || value is String || value is bool) {
+    return value;
+  }
+  if (value is DateTime) {
+    return value.toIso8601String();
+  }
+  if (value is Timestamp) {
+    return value.toDate().toIso8601String();
+  }
+  if (value is GeoPoint) {
+    return {'lat': value.latitude, 'lng': value.longitude};
+  }
+  if (value is DocumentReference) {
+    return value.path; // hoặc value.id tùy nhu cầu
+  }
+  if (value is Iterable) {
+    return value.map(sanitizeForJson).toList();
+  }
+  if (value is Map) {
+    return value.map((k, v) => MapEntry(k.toString(), sanitizeForJson(v)));
+  }
+  // fallback
+  return value.toString();
 }
