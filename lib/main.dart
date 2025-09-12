@@ -6,9 +6,9 @@ import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
 import 'package:aspire_edge_404_notfound/pages/coaching_tools_page.dart';
+import 'package:aspire_edge_404_notfound/pages/contact/contact_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/create_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/edit_quiz_page.dart';
-import 'package:aspire_edge_404_notfound/pages/feedback_form_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/blog_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/cv_tip_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/interview_question_detail_page.dart';
@@ -33,7 +33,6 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // helper: quấn trang trong MainLayout
   Widget withLayout(Widget body, String route) =>
       MainLayout(body: body, currentPageRoute: route);
 
@@ -79,12 +78,10 @@ class MyApp extends StatelessWidget {
             withLayout(const ResourceHubPage(), '/resource_hub'),
         '/testimonials': (context) =>
             withLayout(const TestimonialsPage(), '/testimonials'),
-        '/feedback_form': (context) =>
-            withLayout(const FeedbackFormPage(), '/feedback_form'),
         '/about_us': (context) => withLayout(const AboutUsPage(), '/about_us'),
+        '/contact_us': (context) => withLayout(const ContactUsPage(), '/contact_us'),
         '/admin_panel': (context) =>
             withLayout(const AdminPanelPage(), '/admin_panel'),
-
         '/cv_detail': (context) => const CVTipDetailPage(),
         '/interview_detail': (context) => const InterviewQuestionDetailPage(),
         '/blog_detail': (context) => const BlogDetailPage(),

@@ -60,9 +60,9 @@ class AppDrawer extends StatelessWidget {
       route: '/about_us',
     ),
     const _DrawerItem(
-      title: 'Feedback',
+      title: 'Contact Us',
       icon: Icons.feedback_rounded,
-      route: '/feedback_form',
+      route: '/contact_us',
     ),
   ];
 

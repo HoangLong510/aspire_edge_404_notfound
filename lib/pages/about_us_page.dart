@@ -92,25 +92,25 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 children: const [
                   _TeamMember(
                     name: "Hoàng Gia Huy",
-                    role: "Team Leader / Flutter Dev",
+                    email: "huypg7645@gmail.com",
                     avatarUrl:
                         "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582257/huy_zxzl6e.jpg",
                   ),
                   _TeamMember(
                     name: "Trần Nhật Linh",
-                    role: "Backend Engineer",
+                    email: "nhatlinh3b122@gmail.com",
                     avatarUrl:
                         "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582259/linh_mjmqyv.jpg",
                   ),
                   _TeamMember(
                     name: "Nguyễn Trần Hoàng Long",
-                    role: "UI/UX Designer",
+                    email: "hoanglongnguyen0510@gmail.com",
                     avatarUrl:
                         "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582261/long_pbab33.jpg",
                   ),
                   _TeamMember(
                     name: "Nguyễn Anh Quân",
-                    role: "Database & Cloud",
+                    email: "quan@gmail.com",
                     avatarUrl:
                         "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582260/qu%C3%A2n_w8nrqr.jpg",
                   ),
@@ -185,7 +185,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
             // ==== Contact Us Button ====
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.pushNamed(context, "/contact-us");
+                Navigator.pushNamed(context, "/contact_us");
               },
               icon: const Icon(Icons.mail_outline),
               label: const Text("Contact Us"),
@@ -222,12 +222,12 @@ class _AboutUsPageState extends State<AboutUsPage> {
 
 class _TeamMember extends StatelessWidget {
   final String name;
-  final String role;
+  final String email;
   final String avatarUrl;
 
   const _TeamMember({
     required this.name,
-    required this.role,
+    required this.email,
     required this.avatarUrl,
   });
 
@@ -258,11 +258,11 @@ class _TeamMember extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              role,
+              email,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: Colors.grey[700],
+                color: Colors.blueGrey,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
