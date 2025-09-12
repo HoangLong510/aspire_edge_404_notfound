@@ -17,7 +17,9 @@ import 'package:aspire_edge_404_notfound/pages/home/blog_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/cv_tip_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/interview_question_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home_page.dart';
+import 'package:aspire_edge_404_notfound/pages/industry_intro_page.dart';
 import 'package:aspire_edge_404_notfound/pages/login_page.dart';
+import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/pages/profile_page.dart';
 import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
@@ -33,6 +35,7 @@ import 'package:flutter/material.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await LocalNoti.init();
   runApp(const MyApp());
 }
 
@@ -113,13 +116,20 @@ class _MyAppState extends State<MyApp> {
         '/register': (context) => const RegisterPage(),
         '/change-password': (context) => const ChangePasswordPage(),
 
+        // Notifications
+        '/notifications': (context) => withLayout(
+              NotificationsInboxPage(
+                  uid: FirebaseAuth.instance.currentUser!.uid),
+              '/notifications',
+            ),
+
         // Main pages
         '/': (context) => widget.withLayout(const HomePage(), '/'),
         '/profile': (context) => widget.withLayout(const ProfilePage(), '/profile'),
         '/career_quiz': (context) =>
             widget.withLayout(const CareerQuizPage(), '/career_quiz'),
         '/career_bank': (context) =>
-            widget.withLayout(CareerManagePage(), '/career_bank'),
+            widget.withLayout(const CareerManagePage(), '/career_bank'),
 
         // Career matches logic
         '/career_matches': (context) {
@@ -157,13 +167,11 @@ class _MyAppState extends State<MyApp> {
         '/resource_hub': (context) =>
             widget.withLayout(const ResourceHubPage(), '/resource_hub'),
         '/testimonials': (context) =>
-        '/contact_us': (context) => withLayout(const ContactUsPage(), '/contact_us'),
-        '/admin_panel': (context) =>
-            withLayout(const AdminPanelPage(), '/admin_panel'),
-
             widget.withLayout(const TestimonialsPage(), '/testimonials'),
-        '/feedback_form': (context) =>
-            widget.withLayout(const FeedbackFormPage(), '/feedback_form'),
+        '/contact_us': (context) =>
+            widget.withLayout(const ContactUsPage(), '/contact_us'),
+        "/industry_intro": (context) => const IndustryIntroPage(),
+
         '/about_us': (context) =>
             widget.withLayout(const AboutUsPage(), '/about_us'),
 

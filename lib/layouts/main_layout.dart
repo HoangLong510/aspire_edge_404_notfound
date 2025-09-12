@@ -1,3 +1,4 @@
+import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/widgets/app_drawer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -106,7 +107,13 @@ class _MainLayoutState extends State<MainLayout> {
         final String email = _auth.currentUser?.email ?? 'No email';
         final String avatarUrl = (userData['AvatarUrl'] ?? '').toString();
 
-        return _buildMainScaffold(fullName, email, avatarUrl);
+        // Bọc bằng NotificationsListener nếu có uid
+        final String? uid = _auth.currentUser?.uid;
+        Widget scaffold = _buildMainScaffold(fullName, email, avatarUrl);
+        if (uid != null) {
+          scaffold = NotificationsListener(uid: uid, child: scaffold);
+        }
+        return scaffold;
       },
     );
   }
@@ -125,6 +132,8 @@ class _MainLayoutState extends State<MainLayout> {
         ),
         centerTitle: true,
         actions: [
+          if (_auth.currentUser != null)
+            NotificationBell(uid: _auth.currentUser!.uid),
           _UserMenuAnchor(
             fullName: fullName,
             email: email,

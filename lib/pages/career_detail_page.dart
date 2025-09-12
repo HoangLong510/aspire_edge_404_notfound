@@ -40,7 +40,6 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(data['Title']),
         actions: [
           if (_userTier == "admin")
             IconButton(

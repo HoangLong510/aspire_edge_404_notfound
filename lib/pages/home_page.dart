@@ -141,29 +141,45 @@ class HomePage extends StatelessWidget {
   Widget _buildQuickInterests(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Explore by Interests", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text("Explore by Interests",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              _InterestChip(label: "Technology 💻", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "tech");
+              _InterestChip(label: "Công nghệ 💻", onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  "/industry_intro",
+                  arguments: {"industry": "Information Technology"},
+                );
               }),
-              _InterestChip(label: "Business 📈", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "business");
+              _InterestChip(label: "Kinh doanh 📈", onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  "/industry_intro",
+                  arguments: {"industry": "Business"},
+                );
               }),
-              _InterestChip(label: "Arts 🎨", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "art");
+              _InterestChip(label: "Nghệ thuật 🎨", onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  "/industry_intro",
+                  arguments: {"industry": "Art"},
+                );
               }),
-              _InterestChip(label: "Science 🔬", onTap: () {
-                Navigator.pushNamed(context, "/career_bank", arguments: "science");
+              _InterestChip(label: "Khoa học 🔬", onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  "/industry_intro",
+                  arguments: {"industry": "Science"},
+                );
               }),
             ],
           )
         ],
       );
-
   
   Widget _buildCTA(BuildContext context) => ElevatedButton(
         onPressed: () => Navigator.pushNamed(context, "/career_quiz"),
