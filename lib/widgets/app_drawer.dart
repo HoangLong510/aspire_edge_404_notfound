@@ -16,20 +16,20 @@ class AppDrawer extends StatelessWidget {
   final String currentPageRoute;
   final String fullName;
   final String email;
+  final String avatarUrl;
+  final bool isAdmin; // <-- add flag to switch title/icon for /career_matches
 
   const AppDrawer({
     super.key,
     required this.currentPageRoute,
     required this.fullName,
     required this.email,
+    required this.avatarUrl,
+    this.isAdmin = false, // default non-admin
   });
 
-  static final List<_DrawerItem> _drawerItems = [
-    const _DrawerItem(
-      title: 'Home',
-      icon: Icons.home_rounded,
-      route: '/',
-    ),
+  List<_DrawerItem> _drawerItems() => [
+    const _DrawerItem(title: 'Home', icon: Icons.home_rounded, route: '/'),
     const _DrawerItem(
       title: 'Career Bank',
       icon: Icons.business_center_rounded,
@@ -45,10 +45,11 @@ class AppDrawer extends StatelessWidget {
       icon: Icons.collections_bookmark_rounded,
       route: '/resource_hub',
     ),
-    const _DrawerItem(
-      title: 'Career Quiz',
-      icon: Icons.quiz_rounded,
-      route: '/career_quiz',
+    // Dynamic title & icon for /career_matches
+    _DrawerItem(
+      title: isAdmin ? 'Career Quiz' : 'Career Matches',
+      icon: isAdmin ? Icons.quiz_rounded : Icons.favorite_rounded,
+      route: '/career_matches',
     ),
     const _DrawerItem(
       title: 'Testimonials',
@@ -60,21 +61,18 @@ class AppDrawer extends StatelessWidget {
       icon: Icons.feedback_rounded,
       route: '/feedback_form',
     ),
-    const _DrawerItem(
-      title: 'Profile',
-      icon: Icons.person_rounded,
-      route: '/profile',
-    ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final items = _drawerItems();
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           _buildDrawerHeader(context),
-          ..._drawerItems.map((item) => _buildDrawerTile(context, item)),
+          ...items.map((item) => _buildDrawerTile(context, item)),
         ],
       ),
     );
@@ -90,7 +88,12 @@ class AppDrawer extends StatelessWidget {
       accountEmail: Text(email),
       currentAccountPicture: CircleAvatar(
         backgroundColor: Colors.white,
-        child: Icon(Icons.person_rounded, size: 40, color: primaryColor),
+        backgroundImage: (avatarUrl.isNotEmpty)
+            ? NetworkImage(avatarUrl)
+            : null,
+        child: (avatarUrl.isNotEmpty)
+            ? null
+            : Icon(Icons.person_rounded, size: 40, color: primaryColor),
       ),
       decoration: BoxDecoration(color: primaryColor),
     );

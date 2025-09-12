@@ -160,6 +160,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // ===== Nút quay về =====
+  void _goBack() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+    } else {
+      nav.pushReplacementNamed('/');
+    }
+  }
+
   InputDecoration _deco(String label, IconData icon) => InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: Theme.of(context).primaryColor),
@@ -351,6 +361,27 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
+
+          // ===== Nút back nổi (ở trên nội dung, dưới overlay loading) =====
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  color: Colors.white,
+                  shape: const CircleBorder(),
+                  elevation: 2,
+                  child: IconButton(
+                    tooltip: 'Back',
+                    onPressed: _goBack,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
 
           // ===== Overlay loading states (uploading avatar / saving / logging out) =====
           if (_uploading || _saving || _loggingOut)
