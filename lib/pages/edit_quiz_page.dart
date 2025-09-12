@@ -63,7 +63,9 @@ class _EditQuizPageState extends State<EditQuizPage> {
 
   Future<void> _fetchDoc() async {
     try {
-      final ref = FirebaseFirestore.instance.collection('Questions').doc(_docId);
+      final ref = FirebaseFirestore.instance
+          .collection('Questions')
+          .doc(_docId);
       final snap = await ref.get();
 
       if (!snap.exists) {
@@ -90,7 +92,9 @@ class _EditQuizPageState extends State<EditQuizPage> {
       _optCCtrl.text = _opt(options['C'] as Map?);
       _optDCtrl.text = _opt(options['D'] as Map?);
 
-      _createdAt = data['CreatedAt'] is Timestamp ? data['CreatedAt'] as Timestamp : null;
+      _createdAt = data['CreatedAt'] is Timestamp
+          ? data['CreatedAt'] as Timestamp
+          : null;
 
       setState(() {
         _initializing = false;
@@ -289,30 +293,7 @@ class _EditQuizPageState extends State<EditQuizPage> {
             ),
           ),
 
-          const SizedBox(width: 8),
-
-          // Save (filled, primaryColor)
-          FilledButton.icon(
-            onPressed: (_submitting || _initializing || _notFound)
-                ? null
-                : _saveEdits,
-            label: _submitting
-                ? const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            style: FilledButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              elevation: 0,
-            ),
-          ),
+          // (Removed the top Save button)
         ],
       ),
     );
@@ -387,7 +368,10 @@ class _EditQuizPageState extends State<EditQuizPage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: primary.withOpacity(.08),
                         borderRadius: BorderRadius.circular(999),
@@ -400,7 +384,10 @@ class _EditQuizPageState extends State<EditQuizPage> {
                           const SizedBox(width: 6),
                           Text(
                             _fmtDate(_createdAt!.toDate()),
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.5,
+                            ),
                           ),
                         ],
                       ),
@@ -431,8 +418,8 @@ class _EditQuizPageState extends State<EditQuizPage> {
                   child: Text(
                     'Tier',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -441,9 +428,7 @@ class _EditQuizPageState extends State<EditQuizPage> {
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: primary.withOpacity(.22),
-                    ),
+                    border: Border.all(color: primary.withOpacity(.22)),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
@@ -465,7 +450,8 @@ class _EditQuizPageState extends State<EditQuizPage> {
                       ],
                       onChanged: _submitting
                           ? null
-                          : (v) => setState(() => _selectedTier = v ?? 'student'),
+                          : (v) =>
+                                setState(() => _selectedTier = v ?? 'student'),
                     ),
                   ),
                 ),

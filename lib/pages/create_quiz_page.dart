@@ -213,28 +213,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
             ),
           ),
 
-          const SizedBox(width: 8),
-
-          // Save (filled, primaryColor)
-          FilledButton.icon(
-            onPressed: _submitting ? null : _saveQuestion,
-            label: _submitting
-                ? const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            style: FilledButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              elevation: 0,
-            ),
-          ),
+          // (Removed the top Save button)
         ],
       ),
     );

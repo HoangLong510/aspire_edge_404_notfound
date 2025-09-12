@@ -31,33 +31,37 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
-      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
       setState(() => _isLoading = false);
       return;
     }
 
     try {
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      final uid = cred.user!.uid;
+      String userId = userCredential.user!.uid;
 
-      await FirebaseFirestore.instance.collection('Users').doc(uid).set({
-        'User_Id': uid,
+      await FirebaseFirestore.instance.collection('Users').doc(userId).set({
+        'User_Id': userId,
         'Name': _nameController.text.trim(),
         'E-mail': _emailController.text.trim(),
         'Phone': _phoneController.text.trim(),
         'Tier': _selectedTierKey,
-        'hasOnboarded': false,
-      }, SetOptions(merge: true));
+      });
 
       if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/achievements', (route) => false);
+        await FirebaseAuth.instance.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please log in.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } on FirebaseAuthException catch (e) {
       String message = 'An error occurred. Check the console for details.';
@@ -66,13 +70,13 @@ class _RegisterPageState extends State<RegisterPage> {
       } else if (e.code == 'email-already-in-use') {
         message = 'This email is already in use.';
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -144,8 +148,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: _emailController,
                   decoration: _buildInputDecoration('E-mail', Icons.email_outlined),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) =>
-                      v!.isEmpty || !v.contains('@') ? 'Please enter a valid email' : null,
+                  validator: (v) => v!.isEmpty || !v.contains('@')
+                      ? 'Please enter a valid email'
+                      : null,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -158,8 +163,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _confirmPasswordController,
-                  decoration:
-                      _buildInputDecoration('Confirm Password', Icons.lock_outline),
+                  decoration: _buildInputDecoration('Confirm Password', Icons.lock_outline),
                   obscureText: true,
                   validator: (v) =>
                       v!.isEmpty ? 'Please confirm your password' : null,
@@ -167,8 +171,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _phoneController,
-                  decoration:
-                      _buildInputDecoration('Phone Number', Icons.phone_outlined),
+                  decoration: _buildInputDecoration('Phone Number', Icons.phone_outlined),
                   keyboardType: TextInputType.phone,
                   validator: (v) =>
                       v!.isEmpty ? 'Please enter your phone number' : null,
@@ -193,14 +196,12 @@ class _RegisterPageState extends State<RegisterPage> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                              borderRadius: BorderRadius.circular(12)),
                           elevation: 5,
                         ),
                         child: const Text(
                           'Register',
-                          style:
-                              TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                 const SizedBox(height: 24),
