@@ -545,7 +545,7 @@ class _LoginPageState extends State<LoginPage> {
                     TextButton(
                       onPressed: () => Navigator.of(
                         context,
-                      ).pushReplacementNamed('/register'),
+                      ).pushNamed('/register'),
                       child: Text(
                         'Register',
                         style: TextStyle(

@@ -13,6 +13,7 @@ import 'package:aspire_edge_404_notfound/pages/coaching_tools_page.dart';
 import 'package:aspire_edge_404_notfound/pages/contact/contact_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/create_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/edit_quiz_page.dart';
+import 'package:aspire_edge_404_notfound/pages/feedback_edit_page.dart';
 import 'package:aspire_edge_404_notfound/pages/feedback_form_page.dart';
 import 'package:aspire_edge_404_notfound/pages/feedback_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/blog_detail_page.dart';
@@ -177,6 +178,7 @@ class _MyAppState extends State<MyApp> {
         '/feedback': (context) =>
             widget.withLayout(const FeedbackPage(), '/feedback'),
         '/feedback_form': (context) => const FeedbackFormPage(),
+        '/feedback_edit': (context) => const FeedbackEditPage(),
         '/about_us': (context) =>
             widget.withLayout(const AboutUsPage(), '/about_us'),
 
