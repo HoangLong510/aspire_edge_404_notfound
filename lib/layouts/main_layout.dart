@@ -205,7 +205,6 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
         ),
         child: MenuAnchor(
           controller: _menuController,
-          // Menu bung xuống từ mép phải của nút
           alignmentOffset: const Offset(0, 8),
           menuChildren: [
             // Header: bấm -> /profile
@@ -214,9 +213,8 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
                 _menuController.close();
                 widget.onProfile();
               },
-              // Làm header rộng & “ListTile-like”
               child: SizedBox(
-                width: 260, // giúp menu ổn định layout
+                width: 260,
                 child: Row(
                   children: [
                     _CircleAvatar(
@@ -263,7 +261,7 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
                 _menuController.close();
                 widget.onLogout();
               },
-              leadingIcon: Icon(Icons.logout, color: Colors.red),
+              leadingIcon: const Icon(Icons.logout, color: Colors.red),
               style: ButtonStyle(
                 foregroundColor: MaterialStatePropertyAll(Colors.red.shade700),
               ),
@@ -274,7 +272,7 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
             return Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(999), // ripple khớp nút pill
+                borderRadius: BorderRadius.circular(999),
                 onTap: _toggleMenu,
                 splashColor: Colors.white.withOpacity(.15),
                 highlightColor: Colors.white.withOpacity(.10),
@@ -311,7 +309,6 @@ class _PillAvatarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).primaryColor;
     return Container(
       padding: const EdgeInsets.fromLTRB(6, 6, 2, 6),
       decoration: BoxDecoration(
@@ -327,7 +324,7 @@ class _PillAvatarButton extends StatelessWidget {
             radius: 16,
           ),
           const SizedBox(width: 6),
-          Icon(Icons.expand_more, color: Colors.white),
+          const Icon(Icons.expand_more, color: Colors.white),
         ],
       ),
     );
