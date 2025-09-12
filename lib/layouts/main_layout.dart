@@ -46,8 +46,9 @@ class _MainLayoutState extends State<MainLayout> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error logging out: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error logging out: $e')),
+        );
       }
     }
   }
@@ -69,16 +70,12 @@ class _MainLayoutState extends State<MainLayout> {
             child: const Text('Cancel'),
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Confirm'),
+          FilledButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
               _logout();
             },
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -108,19 +105,22 @@ class _MainLayoutState extends State<MainLayout> {
         final userData = snapshot.data!.data()!;
         final String fullName = (userData['Name'] ?? 'Guest').toString();
         final String email = _auth.currentUser?.email ?? 'No email';
-        final String tier = (userData['Tier'] ?? '').toString().toLowerCase();
-        final bool isAdmin = tier == 'admin';
-        final String uid = _auth.currentUser!.uid;
+        final String avatarUrl = (userData['AvatarUrl'] ?? '').toString();
 
-        return NotificationsListener(
-          uid: uid,
-          child: _buildMainScaffold(fullName, email, isAdmin),
-        );
+        // Bọc bằng NotificationsListener nếu có uid
+        final String? uid = _auth.currentUser?.uid;
+        Widget scaffold = _buildMainScaffold(fullName, email, avatarUrl);
+        if (uid != null) {
+          scaffold = NotificationsListener(uid: uid, child: scaffold);
+        }
+        return scaffold;
       },
     );
   }
 
-  Scaffold _buildMainScaffold(String fullName, String email, bool isAdmin) {
+  Scaffold _buildMainScaffold(String fullName, String email, String avatarUrl) {
+    final color = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
@@ -134,107 +134,251 @@ class _MainLayoutState extends State<MainLayout> {
         actions: [
           if (_auth.currentUser != null)
             NotificationBell(uid: _auth.currentUser!.uid),
-          _buildPopupMenu(fullName, email),
+          _UserMenuAnchor(
+            fullName: fullName,
+            email: email,
+            avatarUrl: avatarUrl,
+            onProfile: () => Navigator.of(context).pushNamed('/profile'),
+            onChangePassword: () => Navigator.of(context).pushNamed('/change-password'),
+            onLogout: _showLogoutConfirmationDialog,
+          ),
         ],
       ),
       drawer: AppDrawer(
         currentPageRoute: widget.currentPageRoute,
         fullName: fullName,
         email: email,
-        isAdmin: isAdmin, // <-- bật mục Admin/Seed Achievements nếu là admin
+        avatarUrl: avatarUrl,
       ),
-      // bọc SafeArea + padding nhẹ để tránh tràn viền
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: widget.body,
-        ),
-      ),
+      body: widget.body,
+      backgroundColor: color.background,
     );
   }
+}
 
-  Widget _buildPopupMenu(String fullName, String email) {
-    return PopupMenuButton<String>(
-      onSelected: (value) {
-        if (value == 'logout') {
-          _showLogoutConfirmationDialog();
-        } else if (value == 'change_password') {
-          // FIX: đồng bộ với routes '/change_password'
-          Navigator.of(context).pushNamed('/change_password');
-        }
-      },
-      icon: const Icon(Icons.account_circle, size: 28),
-      offset: const Offset(0, 50),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-      itemBuilder: (context) => [
-        _buildPopupHeader(fullName, email),
-        const PopupMenuDivider(height: 1),
-        _buildPopupMenuItem(
-          value: 'change_password',
-          icon: Icons.lock_outline,
-          text: 'Change Password',
-          color: Colors.grey.shade700,
-        ),
-        _buildPopupMenuItem(
-          value: 'logout',
-          icon: Icons.logout,
-          text: 'Logout',
-          color: Colors.red.shade700,
-        ),
-      ],
-    );
+/// =======================
+///   M3 Menu (MenuAnchor)
+/// =======================
+
+class _UserMenuAnchor extends StatefulWidget {
+  const _UserMenuAnchor({
+    required this.fullName,
+    required this.email,
+    required this.avatarUrl,
+    required this.onProfile,
+    required this.onChangePassword,
+    required this.onLogout,
+  });
+
+  final String fullName;
+  final String email;
+  final String avatarUrl;
+  final VoidCallback onProfile;
+  final VoidCallback onChangePassword;
+  final VoidCallback onLogout;
+
+  @override
+  State<_UserMenuAnchor> createState() => _UserMenuAnchorState();
+}
+
+class _UserMenuAnchorState extends State<_UserMenuAnchor> {
+  final MenuController _menuController = MenuController();
+
+  void _toggleMenu() {
+    if (_menuController.isOpen) {
+      _menuController.close();
+    } else {
+      _menuController.open();
+    }
   }
 
-  PopupMenuItem<String> _buildPopupHeader(String fullName, String email) {
-    return PopupMenuItem<String>(
-      enabled: false,
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-            child: Icon(Icons.person, color: Theme.of(context).primaryColor),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  fullName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  email,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: MenuTheme(
+        data: MenuThemeData(
+          style: MenuStyle(
+            backgroundColor: MaterialStatePropertyAll(cs.surface),
+            surfaceTintColor: MaterialStatePropertyAll(cs.surfaceTint),
+            elevation: const MaterialStatePropertyAll(8),
+            shape: MaterialStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
+            padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(vertical: 8)),
+            shadowColor: MaterialStatePropertyAll(Colors.black.withOpacity(.25)),
           ),
+        ),
+        child: MenuAnchor(
+          controller: _menuController,
+          alignmentOffset: const Offset(0, 8),
+          menuChildren: [
+            // Header: bấm -> /profile
+            MenuItemButton(
+              onPressed: () {
+                _menuController.close();
+                widget.onProfile();
+              },
+              child: SizedBox(
+                width: 260,
+                child: Row(
+                  children: [
+                    _CircleAvatar(
+                      imageUrl: widget.avatarUrl,
+                      fallbackText: _initials(widget.fullName),
+                      radius: 18,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.fullName,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: cs.onSurface,
+                              )),
+                          const SizedBox(height: 2),
+                          Text(widget.email,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              )),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: theme.primaryColor),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 8, thickness: 1),
+            MenuItemButton(
+              onPressed: () {
+                _menuController.close();
+                widget.onChangePassword();
+              },
+              leadingIcon: Icon(Icons.lock_outline, color: cs.onSurface),
+              child: const Text('Change Password'),
+            ),
+            MenuItemButton(
+              onPressed: () {
+                _menuController.close();
+                widget.onLogout();
+              },
+              leadingIcon: const Icon(Icons.logout, color: Colors.red),
+              style: ButtonStyle(
+                foregroundColor: MaterialStatePropertyAll(Colors.red.shade700),
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
+          builder: (context, controller, child) {
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: _toggleMenu,
+                splashColor: Colors.white.withOpacity(.15),
+                highlightColor: Colors.white.withOpacity(.10),
+                child: _PillAvatarButton(
+                  avatarUrl: widget.avatarUrl,
+                  fullName: widget.fullName,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return 'U';
+    final first = parts.first.isNotEmpty ? parts.first[0] : '';
+    final last = parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
+    return (first + last).toUpperCase();
+  }
+}
+
+/// Nút pill hiển thị trên AppBar (avatar + mũi tên)
+class _PillAvatarButton extends StatelessWidget {
+  const _PillAvatarButton({
+    required this.avatarUrl,
+    required this.fullName,
+  });
+
+  final String avatarUrl;
+  final String fullName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 6, 2, 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _CircleAvatar(
+            imageUrl: avatarUrl,
+            fallbackText: _initials(fullName),
+            radius: 16,
+          ),
+          const SizedBox(width: 6),
+          const Icon(Icons.expand_more, color: Colors.white),
         ],
       ),
     );
   }
 
-  PopupMenuItem<String> _buildPopupMenuItem({
-    required String value,
-    required IconData icon,
-    required String text,
-    required Color color,
-  }) {
-    return PopupMenuItem<String>(
-      value: value,
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: color),
-        title: Text(text, style: TextStyle(color: color)),
-      ),
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return 'U';
+    final first = parts.first.isNotEmpty ? parts.first[0] : '';
+    final last = parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
+    return (first + last).toUpperCase();
+  }
+}
+
+/// Avatar tròn dùng `AvatarUrl` có fallback chữ cái đầu
+class _CircleAvatar extends StatelessWidget {
+  const _CircleAvatar({
+    required this.imageUrl,
+    required this.fallbackText,
+    this.radius = 16,
+  });
+
+  final String imageUrl;
+  final String fallbackText;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = imageUrl.isNotEmpty;
+    final primary = Theme.of(context).primaryColor;
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: primary.withOpacity(.1),
+      backgroundImage: hasImage ? NetworkImage(imageUrl) : null,
+      child: hasImage
+          ? null
+          : Text(
+              fallbackText,
+              style: TextStyle(
+                color: primary,
+                fontWeight: FontWeight.w800,
+                fontSize: radius - 4,
+              ),
+            ),
     );
   }
 }

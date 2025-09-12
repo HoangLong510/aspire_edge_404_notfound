@@ -16,17 +16,19 @@ class AppDrawer extends StatelessWidget {
   final String currentPageRoute;
   final String fullName;
   final String email;
-
-  final bool isAdmin;
+  final String avatarUrl;
+  final bool isAdmin; // hiển thị nhóm Admin nếu true
 
   const AppDrawer({
     super.key,
     required this.currentPageRoute,
     required this.fullName,
     required this.email,
+    required this.avatarUrl,
     this.isAdmin = false,
   });
 
+  // Menu chung
   static final List<_DrawerItem> _drawerItems = [
     const _DrawerItem(title: 'Home', icon: Icons.home_rounded, route: '/'),
     const _DrawerItem(
@@ -55,17 +57,18 @@ class AppDrawer extends StatelessWidget {
       route: '/testimonials',
     ),
     const _DrawerItem(
-      title: 'Feedback',
-      icon: Icons.feedback_rounded,
-      route: '/feedback_form',
+      title: 'About Us',
+      icon: Icons.info_rounded,
+      route: '/about_us',
     ),
     const _DrawerItem(
-      title: 'Profile',
-      icon: Icons.person_rounded,
-      route: '/profile',
+      title: 'Contact Us',
+      icon: Icons.feedback_rounded,
+      route: '/contact_us',
     ),
   ];
 
+  // Menu riêng cho Admin
   static final List<_DrawerItem> _adminItems = [
     const _DrawerItem(
       title: 'Admin Panel',
@@ -74,37 +77,39 @@ class AppDrawer extends StatelessWidget {
     ),
     const _DrawerItem(
       title: 'Seed Achievements',
-      icon: Icons.storage_rounded, 
+      icon: Icons.storage_rounded,
       route: '/seed_achievements',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final items = <Widget>[
+    final children = <Widget>[
       _buildDrawerHeader(context),
       ..._drawerItems.map((item) => _buildDrawerTile(context, item)),
     ];
 
     if (isAdmin) {
-      items.add(const Divider(height: 12));
-      items.add(Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
-        child: Text(
-          'Admin',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).primaryColor,
+      children.add(const Divider(height: 12));
+      children.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
+          child: Text(
+            'Admin',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).primaryColor,
+            ),
           ),
         ),
-      ));
-      items.addAll(_adminItems.map((item) => _buildDrawerTile(context, item)));
+      );
+      children.addAll(_adminItems.map((item) => _buildDrawerTile(context, item)));
     }
 
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: items,
+        children: children,
       ),
     );
   }
@@ -119,7 +124,10 @@ class AppDrawer extends StatelessWidget {
       accountEmail: Text(email),
       currentAccountPicture: CircleAvatar(
         backgroundColor: Colors.white,
-        child: Icon(Icons.person_rounded, size: 40, color: primaryColor),
+        backgroundImage: (avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+        child: (avatarUrl.isNotEmpty)
+            ? null
+            : Icon(Icons.person_rounded, size: 40, color: primaryColor),
       ),
       decoration: BoxDecoration(color: primaryColor),
     );
