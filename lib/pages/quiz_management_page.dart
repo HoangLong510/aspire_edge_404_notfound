@@ -18,10 +18,6 @@ class _QuizManagementPageState extends State<QuizManagementPage> {
   String _tier = 'all'; // all | student | postgraduate | professionals
   bool _desc = true;    // true = newest first
 
-  void _goBack() {
-    if (Navigator.canPop(context)) Navigator.pop(context);
-  }
-
   @override
   void dispose() {
     _searchCtl.dispose();
@@ -101,16 +97,7 @@ class _QuizManagementPageState extends State<QuizManagementPage> {
       ),
       child: Row(
         children: [
-          IconButton.outlined(
-            onPressed: _goBack,
-            tooltip: 'Back',
-            style: IconButton.styleFrom(
-              foregroundColor: primary,
-              side: BorderSide(color: primary.withOpacity(.6)),
-            ),
-            icon: const Icon(Icons.arrow_back),
-          ),
-          const SizedBox(width: 8),
+          // (Đã bỏ nút quay về vì đây là trang chính)
           Expanded(
             child: Center(
               child: FittedBox(
@@ -165,7 +152,7 @@ class _QuizManagementPageState extends State<QuizManagementPage> {
             controller: _searchCtl,
             onChanged: (v) => setState(() => _search = v.trim()),
             decoration: InputDecoration(
-              hintText: 'Tìm theo câu hỏi…',
+              hintText: 'Search questions…',
               prefixIcon: Icon(Icons.search, color: primary),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               border: OutlineInputBorder(

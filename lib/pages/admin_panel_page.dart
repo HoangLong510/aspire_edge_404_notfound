@@ -19,6 +19,12 @@ class _AdminPanelPageState extends State<AdminPanelPage>
   }
 
   @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +40,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
       ),
       body: TabBarView(
         controller: _tabCtrl,
-        children: [
+        children: const [
           _CandidateList(collection: 'ResourceCandidates'),
           _CandidateList(collection: 'IndustryCandidates'),
           _CandidateList(collection: 'SkillCandidates'),
@@ -56,23 +62,38 @@ class _CandidateList extends StatelessWidget {
           .where('status', isEqualTo: 'pending')
           .snapshots(),
       builder: (ctx, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        final docs = snap.data!.docs;
-        if (docs.isEmpty) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError) {
+          return Center(child: Text('Error: ${snap.error}'));
+        }
+        if (!snap.hasData || snap.data!.docs.isEmpty) {
           return const Center(child: Text("No pending items"));
         }
+
+        final docs = snap.data!.docs;
         return ListView.separated(
           itemCount: docs.length,
-          separatorBuilder: (_, __) => const Divider(),
+          separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (ctx, i) {
             final d = docs[i].data() as Map<String, dynamic>;
+            final title = (d['title'] ?? 'Untitled').toString();
+            final byName = (d['requested_by_name'] ?? '').toString();
+            final byEmail = (d['requested_by_email'] ?? '').toString();
+
             return ListTile(
-              title: Text(d['title'] ?? 'Untitled'),
-              subtitle: Text("By ${d['requested_by_name'] ?? d['requested_by_email']}"),
+              title: Text(title),
+              subtitle: Text(
+                byName.isNotEmpty ? "By $byName" : "By $byEmail",
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
               trailing: Wrap(
                 spacing: 4,
                 children: [
                   IconButton(
+                    tooltip: 'Approve',
                     icon: const Icon(Icons.check, color: Colors.green),
                     onPressed: () {
                       FirebaseFirestore.instance
@@ -82,6 +103,7 @@ class _CandidateList extends StatelessWidget {
                     },
                   ),
                   IconButton(
+                    tooltip: 'Reject',
                     icon: const Icon(Icons.close, color: Colors.red),
                     onPressed: () {
                       FirebaseFirestore.instance

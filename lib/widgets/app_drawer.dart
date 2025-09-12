@@ -16,17 +16,19 @@ class AppDrawer extends StatelessWidget {
   final String currentPageRoute;
   final String fullName;
   final String email;
-
-  final bool isAdmin;
+  final String avatarUrl;
+  final bool isAdmin; // hiển thị nhóm Admin nếu true
 
   const AppDrawer({
     super.key,
     required this.currentPageRoute,
     required this.fullName,
     required this.email,
+    required this.avatarUrl,
     this.isAdmin = false,
   });
 
+  // Menu chung
   static final List<_DrawerItem> _drawerItems = [
     const _DrawerItem(title: 'Home', icon: Icons.home_rounded, route: '/'),
     const _DrawerItem(
@@ -66,6 +68,7 @@ class AppDrawer extends StatelessWidget {
     ),
   ];
 
+  // Menu riêng cho Admin
   static final List<_DrawerItem> _adminItems = [
     const _DrawerItem(
       title: 'Admin Panel',
@@ -81,14 +84,14 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <Widget>[
+    final children = <Widget>[
       _buildDrawerHeader(context),
       ..._drawerItems.map((item) => _buildDrawerTile(context, item)),
     ];
 
     if (isAdmin) {
-      items.add(const Divider(height: 12));
-      items.add(
+      children.add(const Divider(height: 12));
+      children.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
           child: Text(
@@ -100,11 +103,14 @@ class AppDrawer extends StatelessWidget {
           ),
         ),
       );
-      items.addAll(_adminItems.map((item) => _buildDrawerTile(context, item)));
+      children.addAll(_adminItems.map((item) => _buildDrawerTile(context, item)));
     }
 
     return Drawer(
-      child: ListView(padding: EdgeInsets.zero, children: items),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: children,
+      ),
     );
   }
 
@@ -118,7 +124,10 @@ class AppDrawer extends StatelessWidget {
       accountEmail: Text(email),
       currentAccountPicture: CircleAvatar(
         backgroundColor: Colors.white,
-        child: Icon(Icons.person_rounded, size: 40, color: primaryColor),
+        backgroundImage: (avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+        child: (avatarUrl.isNotEmpty)
+            ? null
+            : Icon(Icons.person_rounded, size: 40, color: primaryColor),
       ),
       decoration: BoxDecoration(color: primaryColor),
     );

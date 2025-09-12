@@ -24,20 +24,23 @@ class _CoachingToolsPageState extends State<CoachingToolsPage> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          _TipCard(
+          const _TipCard(
             icon: Icons.description_outlined,
             title: "Use a clear format",
-            description: "Keep your CV structured with clear headings and bullet points.",
+            description:
+                "Keep your CV structured with clear headings and bullet points.",
           ),
-          _TipCard(
+          const _TipCard(
             icon: Icons.check_circle_outline,
             title: "Highlight achievements",
-            description: "Focus on measurable results instead of just listing tasks.",
+            description:
+                "Focus on measurable results instead of just listing tasks.",
           ),
-          _TipCard(
+          const _TipCard(
             icon: Icons.language_outlined,
             title: "Tailor your CV",
-            description: "Adjust your CV to fit each job application and industry.",
+            description:
+                "Adjust your CV to fit each job application and industry.",
           ),
 
           const SizedBox(height: 24),
@@ -48,17 +51,20 @@ class _CoachingToolsPageState extends State<CoachingToolsPage> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          _QnACard(
+          const _QnACard(
             question: "Tell me about yourself.",
-            answer: "Introduce briefly: education, key experience, and why you fit the role.",
+            answer:
+                "Introduce briefly: education, key experience, and why you fit the role.",
           ),
-          _QnACard(
+          const _QnACard(
             question: "What are your strengths and weaknesses?",
-            answer: "Highlight 2-3 strengths with examples. For weaknesses, mention what you are improving.",
+            answer:
+                "Highlight 2-3 strengths with examples. For weaknesses, mention what you are improving.",
           ),
-          _QnACard(
+          const _QnACard(
             question: "Why do you want to work here?",
-            answer: "Show that you researched the company and explain how your goals align with theirs.",
+            answer:
+                "Show that you researched the company and explain how your goals align with theirs.",
           ),
         ],
       ),
@@ -95,7 +101,10 @@ class _QnACard extends StatelessWidget {
   final String question;
   final String answer;
 
-  const _QnACard({required this.question, required this.answer});
+  const _QnACard({
+    required this.question,
+    required this.answer,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -104,11 +113,17 @@ class _QnACard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ExpansionTile(
         leading: const Icon(Icons.question_answer_outlined),
-        title: Text(question, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          question,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
-            child: Text(answer, style: TextStyle(color: Colors.grey[700])),
+            child: Text(
+              answer,
+              style: TextStyle(color: Colors.grey[700]),
+            ),
           ),
         ],
       ),
