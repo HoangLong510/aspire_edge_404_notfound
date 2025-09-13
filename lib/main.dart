@@ -5,6 +5,7 @@ import 'package:aspire_edge_404_notfound/pages/about_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/achievements_slider_page.dart';
 import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
 import 'package:aspire_edge_404_notfound/pages/answer_quiz_page.dart';
+import 'package:aspire_edge_404_notfound/pages/career_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_docs_all_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_matches_page.dart';
@@ -136,6 +137,13 @@ class _MyAppState extends State<MyApp> {
             widget.withLayout(const CareerQuizPage(), '/career_quiz'),
         '/career_bank': (context) =>
             widget.withLayout(const CareerManagePage(), '/career_bank'),
+        '/career_detail': (context) {
+          final careerId = ModalRoute.of(context)!.settings.arguments as String;
+          return MyApp().withLayout(
+            CareerDetailPage(careerId: careerId),
+            '/career_detail',
+          );
+        },
 
         // Career matches logic
         '/career_matches': (context) {

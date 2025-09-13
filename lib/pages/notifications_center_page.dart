@@ -2,10 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
-/// ===============================================================
-///  LocalNoti: init & show local notifications (foreground only)
-/// ===============================================================
+
 class LocalNoti {
   static final _fln = FlutterLocalNotificationsPlugin();
 
@@ -32,10 +31,6 @@ class LocalNoti {
   }
 }
 
-/// ===================================================================================
-///  NotificationsListener: wrap widget tree & listen Notifications/{uid}/items
-///  → hiện local noti khi có doc mới, đồng thời không đụng tới UI của bạn.
-/// ===================================================================================
 class NotificationsListener extends StatefulWidget {
   final String uid;
   final Widget child;
@@ -169,61 +164,262 @@ class NotificationBell extends StatelessWidget {
 /// =======================================================================
 ///  NotificationsInboxPage: danh sách thông báo của user (realtime)
 /// =======================================================================
-class NotificationsInboxPage extends StatelessWidget {
+
+class NotificationsInboxPage extends StatefulWidget {
   final String uid;
   const NotificationsInboxPage({super.key, required this.uid});
+
+  @override
+  State<NotificationsInboxPage> createState() => _NotificationsInboxPageState();
+}
+
+class _NotificationsInboxPageState extends State<NotificationsInboxPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
+
+    _tabCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final q = FirebaseFirestore.instance
         .collection('Notifications')
-        .doc(uid)
+        .doc(widget.uid)
         .collection('items')
         .orderBy('createdAt', descending: true)
         .limit(200)
         .snapshots();
 
+    final primary = Theme.of(context).primaryColor;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Thông báo')),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text(
+          'Notifications',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+        ),
+        backgroundColor: primary,
+        elevation: 0,
+        bottom: TabBar(
+          controller: _tabCtrl,
+          indicatorColor: Colors.white,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          tabs: const [
+            Tab(text: "All"),
+            Tab(text: "Unread"),
+          ],
+        ),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: q,
         builder: (ctx, snap) {
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snap.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text('Chưa có thông báo'));
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          var docs = snap.data!.docs;
+          if (docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_off_rounded,
+                      color: Colors.grey[400], size: 72),
+                  const SizedBox(height: 14),
+                  Text(
+                    'No notifications yet',
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Apply filter nếu ở tab "Unread"
+          if (_tabCtrl.index == 1) {
+            docs = docs.where((d) => d['read'] != true).toList();
+          }
 
           return ListView.separated(
+            padding: const EdgeInsets.all(18),
             itemCount: docs.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (ctx, i) {
               final d = docs[i];
               final m = d.data() as Map<String, dynamic>? ?? {};
-              final title = (m['title'] ?? 'Thông báo').toString();
-              final body  = (m['body'] ?? '').toString();
-              final type  = (m['type'] ?? '').toString();
-              final from  = (m['fromName'] ?? m['fromUserId'] ?? '').toString();
+
+              final notifId = d.id;
+              final title = (m['title'] ?? 'Notification').toString();
+              final body = (m['body'] ?? '').toString();
+              final type = (m['type'] ?? '').toString();
               final careerId = (m['careerId'] ?? '').toString();
+              final blogId = (m['blogId'] ?? '').toString();
               final t = (m['createdAt'] as Timestamp?)?.toDate();
               final read = m['read'] == true;
 
-              return ListTile(
-                leading: Icon(type == 'blog' ? Icons.article : Icons.update),
-                title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text(
-                  [
-                    if (body.isNotEmpty) body,
-                    if (careerId.isNotEmpty) 'career: $careerId',
-                    if (from.isNotEmpty) 'from: $from',
-                    if (t != null) t.toLocal().toString(),
-                  ].where((e) => e.isNotEmpty).join(' · '),
-                  maxLines: 2, overflow: TextOverflow.ellipsis,
+              // icon + màu
+              IconData icon;
+              Color iconColor;
+              switch (type) {
+                case 'blog':
+                  icon = Icons.article_rounded;
+                  iconColor = Colors.blueAccent;
+                  break;
+                case 'career_update':
+                  icon = Icons.work_history_rounded;
+                  iconColor = Colors.deepPurple;
+                  break;
+                case 'edit_career':
+                  icon = Icons.edit_note_rounded;
+                  iconColor = Colors.orange;
+                  break;
+                case 'feedback':
+                  icon = Icons.feedback_rounded;
+                  iconColor = Colors.teal;
+                  break;
+                case 'reply':
+                  icon = Icons.mark_chat_read_rounded;
+                  iconColor = Colors.green;
+                  break;
+                default:
+                  icon = Icons.notifications_active_rounded;
+                  iconColor = primary;
+              }
+
+              String formatDdMmHhMm(DateTime d) {
+                String two(int n) => n.toString().padLeft(2, '0');
+                return '${two(d.day)}/${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
+              }
+
+              final timeStr = t != null ? formatDdMmHhMm(t.toLocal()) : '';
+
+              return Slidable(
+                key: ValueKey(notifId),
+                endActionPane: ActionPane(
+                  motion: const DrawerMotion(),
+                  extentRatio: 0.25,
+                  children: [
+                    SlidableAction(
+                      onPressed: (_) async {
+                        await FirebaseFirestore.instance
+                            .collection('Notifications')
+                            .doc(widget.uid)
+                            .collection('items')
+                            .doc(notifId)
+                            .delete();
+                      },
+                      icon: Icons.delete,
+                      label: 'Delete',
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ],
                 ),
-                trailing: read
-                    ? const SizedBox.shrink()
-                    : const Icon(Icons.brightness_1, size: 10, color: Colors.red),
-                onTap: () {
-                  // TODO: điều hướng theo type/careerId/blogId nếu muốn
-                },
+                child: GestureDetector(
+                  onTap: () async {
+                    await FirebaseFirestore.instance
+                        .collection('Notifications')
+                        .doc(widget.uid)
+                        .collection('items')
+                        .doc(notifId)
+                        .update({'read': true});
+                    _handleTap(context, type, careerId, blogId);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: read ? Colors.white : primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: iconColor.withOpacity(0.12),
+                          child: Icon(icon, color: iconColor, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.5,
+                                  color: read ? Colors.black87 : primary,
+                                ),
+                              ),
+                              if (body.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  body,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: Colors.grey[800],
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                              if (timeStr.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  timeStr,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (!read)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8, top: 6),
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               );
             },
           );
@@ -231,7 +427,25 @@ class NotificationsInboxPage extends StatelessWidget {
       ),
     );
   }
+
+  void _handleTap(
+      BuildContext context, String type, String careerId, String blogId) {
+    if (type == 'edit_career' && careerId.isNotEmpty) {
+      Navigator.pushNamed(context, '/edit_career', arguments: careerId);
+    } else if (type == 'career_update' && careerId.isNotEmpty) {
+      Navigator.pushNamed(context, '/career_detail', arguments: careerId);
+    } else if (type == 'blog' && blogId.isNotEmpty) {
+      Navigator.pushNamed(context, '/blog_detail', arguments: blogId);
+    } else if (type == 'feedback' || type == 'reply') {
+      Navigator.pushNamed(context, '/feedback');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No action available for this notification")),
+      );
+    }
+  }
 }
+
 
 /// =====================================================================
 ///  NotiAdminApi: HÀM GỬI THÔNG BÁO THEO NGHỀ YÊU THÍCH (FAN-OUT, NO SERVER)
@@ -263,6 +477,58 @@ class NotiAdminApi {
       adminUid: adminUid,
       fromName: fromName,
     );
+  }
+  /// Gửi noti tới tất cả admin khi có feedback mới
+  static Future<void> sendFeedbackToAdmins({
+    required String userId,
+    required String content,
+  }) async {
+    final fs = FirebaseFirestore.instance;
+
+    // Tìm tất cả user có Tier = admin
+    final q = await fs.collection('Users')
+        .where('Tier', isEqualTo: 'admin')
+        .get();
+
+    if (q.docs.isEmpty) return;
+
+    final batch = fs.batch();
+    for (final u in q.docs) {
+      final adminUid = u.id;
+      final ref = fs.collection('Notifications')
+          .doc(adminUid)
+          .collection('items')
+          .doc();
+
+      batch.set(ref, {
+        'title': 'Feedback mới',
+        'body': content.length > 50 ? '${content.substring(0, 50)}...' : content,
+        'type': 'feedback',
+        'fromUserId': userId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'read': false,
+      });
+    }
+
+    await batch.commit();
+  }
+
+  static Future<void> sendReplyToUser({
+    required String toUserId,
+    required String replyMsg,
+    String fromName = 'Admin',
+  }) async {
+    final fs = FirebaseFirestore.instance;
+    final ref = fs.collection('Notifications').doc(toUserId).collection('items').doc();
+
+    await ref.set({
+      'title': 'Phản hồi feedback',
+      'body': replyMsg,
+      'type': 'reply',
+      'fromName': fromName,
+      'createdAt': FieldValue.serverTimestamp(),
+      'read': false,
+    });
   }
 
   /// Gọi sau khi ADMIN tạo blog liên quan

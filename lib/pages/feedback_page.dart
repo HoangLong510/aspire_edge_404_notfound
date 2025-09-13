@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -168,6 +169,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
     setState(() => _replySubmitting[docId] = true);
     try {
+      final fbDoc = await FirebaseFirestore.instance
+          .collection('Feedbacks')
+          .doc(docId)
+          .get();
+      final toUserId = (fbDoc.data()?['UserId'] ?? '').toString();
+
       await FirebaseFirestore.instance.collection('Feedbacks').doc(docId).update({
         'Reply': {
           'message': msg,
@@ -175,6 +182,11 @@ class _FeedbackPageState extends State<FeedbackPage> {
         },
         'Status': 'replied',
       });
+      await NotiAdminApi.sendReplyToUser(
+        toUserId: toUserId, // lấy từ field 'UserId' của feedback
+        replyMsg: msg,
+        fromName: 'Admin',
+      );
       ctrl.clear();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

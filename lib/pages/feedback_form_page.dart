@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'notifications_center_page.dart';
+
 class FeedbackFormPage extends StatefulWidget {
   const FeedbackFormPage({super.key});
 
@@ -240,6 +242,12 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
           'repliedAt': FieldValue.serverTimestamp(),
         };
         status = 'replied';
+
+        await NotiAdminApi.sendReplyToUser(
+          toUserId: user.uid,
+          replyMsg: replyMsg,
+          fromName: name,
+        );
       }
 
       await FirebaseFirestore.instance.collection('Feedbacks').add({
@@ -255,6 +263,11 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
         'Status': status,
         if (replyPayload != null) 'Reply': replyPayload,
       });
+
+      await NotiAdminApi.sendFeedbackToAdmins(
+          userId: user.uid,
+          content: content,
+      );
 
       if (!mounted) return;
       Navigator.of(context).pop();
