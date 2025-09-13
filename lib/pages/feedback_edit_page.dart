@@ -25,9 +25,10 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
   int _rating = 0;
   bool _loading = true;
   bool _saving = false;
-  bool _anonymous = false; // NEW
+  bool _anonymous = false;
 
   DateTime? _createdAt;
+  DateTime? _expiryAt; // CreatedAt + 24h
   Timer? _countdownTimer;
   Duration _remaining = Duration.zero;
 
@@ -87,18 +88,21 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
               );
               return;
             }
+
             final data = snap.data()!;
             _ownerUid = (data['UserId'] ?? '').toString();
             _email = (data['E-mail'] ?? '').toString();
             _nameCtrl.text = (data['Name'] ?? '').toString();
             _phoneCtrl.text = (data['Phone'] ?? '').toString();
             _contentCtrl.text = (data['Content'] ?? '').toString();
-            _rating = (data['Rating'] ?? 0) as int? ?? 0;
+            _rating = (data['Rating'] ?? 0) is int
+                ? (data['Rating'] as int)
+                : 0;
+            _anonymous = (data['IsAnonymous'] ?? false) as bool? ?? false;
 
-            _anonymous = (data['IsAnonymous'] ?? false) as bool; // NEW
-
-            final ts = data['CreatedAt'] as Timestamp?;
-            _createdAt = ts?.toDate();
+            final ts = data['CreatedAt'];
+            _createdAt = (ts is Timestamp) ? ts.toDate() : null;
+            _expiryAt = _createdAt?.add(const Duration(hours: 24));
 
             _setupCountdown();
             setState(() => _loading = false);
@@ -113,21 +117,15 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
 
   void _setupCountdown() {
     _countdownTimer?.cancel();
-    DateTime? deadline;
-    if (_createdAt != null) {
-      deadline = _createdAt!.add(const Duration(hours: 24));
-    }
 
     void tick() {
       if (!mounted) return;
-      if (deadline == null) {
+      if (_expiryAt == null) {
         setState(() => _remaining = Duration.zero);
         return;
       }
-      final diff = deadline.difference(DateTime.now());
-      setState(() {
-        _remaining = diff.isNegative ? Duration.zero : diff;
-      });
+      final diff = _expiryAt!.difference(DateTime.now());
+      setState(() => _remaining = diff.isNegative ? Duration.zero : diff);
       if (diff.isNegative) _countdownTimer?.cancel();
     }
 
@@ -135,11 +133,37 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
   }
 
-  String _formatRemain(Duration d) {
+  // Format helper for “H:MM:SS” or “MM:SS”
+  String _fmtHms(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes % 60;
     final s = d.inSeconds % 60;
-    return '${h.toString()}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    if (h > 0) {
+      return '${h.toString()}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return '${m.toString()}:${s.toString().padLeft(2, '0')}';
+  }
+
+  // Human message for the badge
+  String _countdownMessage() {
+    if (_expiryAt == null) {
+      return 'Missing CreatedAt • editing is locked.';
+    }
+    if (_remaining <= Duration.zero) {
+      return 'You have run out of time to edit your feedback.';
+    }
+    final hasHours = _remaining.inHours > 0;
+    final timeText = _fmtHms(_remaining);
+    final unit = hasHours ? 'hours' : 'minutes';
+    // e.g., "1:05:42 hours left to edit your feedback."
+    // or    "12:30 minutes left to edit your feedback."
+    return '$timeText $unit left to edit your feedback.';
+  }
+
+  Color _badgeColor() {
+    if (_expiryAt == null) return Colors.grey;
+    if (_remaining <= Duration.zero) return Colors.redAccent;
+    return Colors.teal;
   }
 
   String _emojiFor(int r) {
@@ -167,7 +191,7 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
       case 2:
         return Colors.orange;
       case 3:
-        return Colors.amber[700]!;
+        return Colors.amber;
       case 4:
         return primary;
       case 5:
@@ -221,12 +245,17 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
     ),
   );
 
-  bool get _editLocked {
+  bool get _isOwner {
     final user = FirebaseAuth.instance.currentUser;
-    final isOwner = user != null && _ownerUid != null && user.uid == _ownerUid;
-    final withinWindow = _remaining > Duration.zero;
-    return !isOwner || !withinWindow;
+    return user != null && _ownerUid != null && user.uid == _ownerUid;
   }
+
+  bool get _withinWindow {
+    if (_expiryAt == null) return false;
+    return _remaining > Duration.zero;
+  }
+
+  bool get _editLocked => !_isOwner || !_withinWindow;
 
   Future<void> _save() async {
     if (_docId == null) return;
@@ -289,6 +318,37 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
     Navigator.of(context).maybePop();
   }
 
+  // Overflow-safe, multi-line badge
+  Widget _countdownBadge() {
+    final color = _badgeColor();
+    final icon = _expiryAt == null
+        ? Icons.lock_clock
+        : (_remaining <= Duration.zero ? Icons.lock : Icons.timer);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: Colors.white),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
+            child: Text(
+              _countdownMessage(),
+              softWrap: true,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final locked = _editLocked;
@@ -316,15 +376,33 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
                         ),
                       ),
                     ),
-                    Text(
-                      'Edit Feedback',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineLarge
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
+
+                    // Title + countdown (Wrap prevents overflow on narrow screens)
+                    Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 520),
+                            child: Text(
+                              'Edit Feedback',
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.headlineLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                            ),
                           ),
+                          _countdownBadge(),
+                        ],
+                      ),
                     ),
+
                     const SizedBox(height: 16),
                     Center(child: _emojiFace()),
                     const SizedBox(height: 8),
@@ -339,7 +417,6 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
                           : (v) async {
                               if (!mounted) return;
                               if (v == false) {
-                                // reload profile from Users collection
                                 final user = FirebaseAuth.instance.currentUser;
                                 if (user != null) {
                                   final snap = await FirebaseFirestore.instance
@@ -377,7 +454,7 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
                             TextFormField(
                               controller: _nameCtrl,
                               readOnly: identityLocked,
-                              decoration: _deco('Full Name', Icons.person),
+                              decoration: _deco('Full name', Icons.person),
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -395,7 +472,7 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
                       controller: _contentCtrl,
                       readOnly: locked || _saving,
                       maxLines: 5,
-                      decoration: _deco('Your Feedback', Icons.feedback),
+                      decoration: _deco('Your feedback', Icons.feedback),
                     ),
                     const SizedBox(height: 20),
 
@@ -411,7 +488,7 @@ class _FeedbackEditPageState extends State<FeedbackEditPage> {
                               ),
                             )
                           : const Icon(Icons.save),
-                      label: Text(_saving ? 'Saving...' : 'Save Changes'),
+                      label: Text(_saving ? 'Saving...' : 'Save changes'),
                     ),
                   ],
                 ),

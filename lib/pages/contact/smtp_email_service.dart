@@ -27,6 +27,27 @@ class SmtpEmailService {
     }
   }
 
+  static Future<bool> sendOtpEmail({
+    required String toEmail,
+    required String otp,
+  }) async {
+    final smtpServer = gmail(_username, _password);
+
+    final mail = Message()
+      ..from = Address(_username, "AspireEdge Verification")
+      ..recipients.add(toEmail)
+      ..subject = "🔐 Your AspireEdge OTP Code"
+      ..html = _otpTemplate(otp);
+
+    try {
+      await send(mail, smtpServer);
+      return true;
+    } catch (e) {
+      print("OTP email failed: $e");
+      return false;
+    }
+  }
+
   static String _contactTemplate(String name, String email, String message) => """
 <div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #212121">
   <div style="max-width: 600px; margin: auto">
@@ -49,4 +70,23 @@ class SmtpEmailService {
   </div>
 </div>
 """;
+
+  static String _otpTemplate(String otp) => """
+  <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
+    <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+      <div style="background-color: #2196f3; padding: 20px; text-align: center; color: #fff;">
+        <h1>AspireEdge</h1>
+      </div>
+      <div style="padding: 30px;">
+        <h2 style="color: #2196f3;">Your OTP Code</h2>
+        <p>Please use the following OTP to verify your email. This code will expire in 5 minutes:</p>
+        <p style="font-size: 28px; font-weight: bold; text-align: center; letter-spacing: 4px;">$otp</p>
+        <p style="margin-top: 20px;">If you did not request this, you can safely ignore this email.</p>
+      </div>
+      <div style="background-color: #f5f5f5; padding: 16px; text-align: center; color: #555;">
+        <p>&copy; 2025 AspireEdge. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+  """;
 }

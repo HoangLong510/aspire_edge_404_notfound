@@ -39,9 +39,9 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
       return;
     }
 
@@ -50,9 +50,9 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
       _userId = userCredential.user!.uid;
 
       await FirebaseFirestore.instance.collection('Users').doc(_userId).set({
@@ -148,16 +148,17 @@ class _RegisterPageState extends State<RegisterPage> {
       prefixIcon: Icon(icon, color: Theme.of(context).primaryColor),
       filled: true,
       fillColor: Colors.grey.withOpacity(0.1),
-      contentPadding:
-          const EdgeInsets.symmetric(vertical: 18.0, horizontal: 12.0),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 18.0,
+        horizontal: 12.0,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 2),
+        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
       ),
     );
   }
@@ -169,8 +170,7 @@ class _RegisterPageState extends State<RegisterPage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: !_isStepTwo ? _buildStepOne(context) : _buildStepTwo(context),
         ),
       ),
@@ -187,18 +187,17 @@ class _RegisterPageState extends State<RegisterPage> {
           Text(
             'Create Account',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
-                ),
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Join us to start your journey.',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
@@ -206,9 +205,11 @@ class _RegisterPageState extends State<RegisterPage> {
           // Name
           TextFormField(
             controller: _nameController,
-            decoration: _buildInputDecoration('Full Name', Icons.person_outline),
-            validator: (v) =>
-                v!.isEmpty ? 'Please enter your full name' : null,
+            decoration: _buildInputDecoration(
+              'Full Name',
+              Icons.person_outline,
+            ),
+            validator: (v) => v!.isEmpty ? 'Please enter your full name' : null,
           ),
           const SizedBox(height: 20),
 
@@ -228,9 +229,8 @@ class _RegisterPageState extends State<RegisterPage> {
             controller: _passwordController,
             decoration: _buildInputDecoration('Password', Icons.lock_outline),
             obscureText: true,
-            validator: (v) => v!.length < 6
-                ? 'Password must be at least 6 characters'
-                : null,
+            validator: (v) =>
+                v!.length < 6 ? 'Password must be at least 6 characters' : null,
           ),
           const SizedBox(height: 20),
 
@@ -238,7 +238,9 @@ class _RegisterPageState extends State<RegisterPage> {
           TextFormField(
             controller: _confirmPasswordController,
             decoration: _buildInputDecoration(
-                'Confirm Password', Icons.lock_outline),
+              'Confirm Password',
+              Icons.lock_outline,
+            ),
             obscureText: true,
             validator: (v) =>
                 v!.isEmpty ? 'Please confirm your password' : null,
@@ -248,8 +250,10 @@ class _RegisterPageState extends State<RegisterPage> {
           // Phone
           TextFormField(
             controller: _phoneController,
-            decoration:
-                _buildInputDecoration('Phone Number', Icons.phone_outlined),
+            decoration: _buildInputDecoration(
+              'Phone Number',
+              Icons.phone_outlined,
+            ),
             keyboardType: TextInputType.phone,
             validator: (v) =>
                 v!.isEmpty ? 'Please enter your phone number' : null,
@@ -259,10 +263,14 @@ class _RegisterPageState extends State<RegisterPage> {
           // Tier
           DropdownButtonFormField<String>(
             value: _selectedTierKey,
-            decoration: _buildInputDecoration('I am a...', Icons.school_outlined),
+            decoration: _buildInputDecoration(
+              'I am a...',
+              Icons.school_outlined,
+            ),
             items: _tierOptions.entries
-                .map((e) =>
-                    DropdownMenuItem(value: e.key, child: Text(e.value)))
+                .map(
+                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                )
                 .toList(),
             onChanged: (v) {
               setState(() {
@@ -276,30 +284,57 @@ class _RegisterPageState extends State<RegisterPage> {
           // Submit
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : ElevatedButton(
-                  onPressed: _registerUser,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 5,
-                  ),
-                  child: const Text(
-                    'Register',
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
+              : (_selectedTierKey == 'professionals'
+                    ? ElevatedButton.icon(
+                        onPressed: _registerUser,
+                        icon: const Icon(Icons.arrow_forward),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Colors.deepPurple, // màu khác cho nổi bật
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 6,
+                        ),
+                        label: const Text(
+                          "Next Step",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: _registerUser,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 5,
+                        ),
+                        child: const Text(
+                          'Register',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )),
           const SizedBox(height: 24),
 
           // Login link
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("Already have an account?",
-                  style: TextStyle(color: Colors.grey[700])),
+              Text(
+                "Already have an account?",
+                style: TextStyle(color: Colors.grey[700]),
+              ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: Text(
@@ -323,11 +358,11 @@ class _RegisterPageState extends State<RegisterPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Complete Professional Info',
+          'Just One More Step to Get Started',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).primaryColor,
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 30),
@@ -335,18 +370,23 @@ class _RegisterPageState extends State<RegisterPage> {
         // Industry
         DropdownButtonFormField<String>(
           value: _selectedIndustryId,
-          decoration: _buildInputDecoration('Select Industry', Icons.work_outline),
+          decoration: _buildInputDecoration(
+            'Select Industry',
+            Icons.work_outline,
+          ),
           items: INDUSTRIES
-              .map((ind) => DropdownMenuItem(
-                    value: ind.id,
-                    child: Row(
-                      children: [
-                        Icon(ind.icon, size: 18),
-                        const SizedBox(width: 8),
-                        Text(ind.name),
-                      ],
-                    ),
-                  ))
+              .map(
+                (ind) => DropdownMenuItem(
+                  value: ind.id,
+                  child: Row(
+                    children: [
+                      Icon(ind.icon, size: 18),
+                      const SizedBox(width: 8),
+                      Text(ind.name),
+                    ],
+                  ),
+                ),
+              )
               .toList(),
           onChanged: (v) {
             setState(() {
@@ -376,7 +416,9 @@ class _RegisterPageState extends State<RegisterPage> {
               return DropdownButtonFormField<String>(
                 value: _selectedCareerId,
                 decoration: _buildInputDecoration(
-                    'Select Career (CareerBank)', Icons.cases_outlined),
+                  'Select Career (CareerBank)',
+                  Icons.cases_outlined,
+                ),
                 items: docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   return DropdownMenuItem(
@@ -413,7 +455,9 @@ class _RegisterPageState extends State<RegisterPage> {
               return DropdownButtonFormField<String>(
                 value: _selectedCareerPathId,
                 decoration: _buildInputDecoration(
-                    'Select Career Path (Level)', Icons.timeline),
+                  'Select Career Path (Level)',
+                  Icons.timeline,
+                ),
                 items: docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   return DropdownMenuItem(
@@ -436,7 +480,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 5,
                 ),
                 child: const Text(
