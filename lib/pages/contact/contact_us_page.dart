@@ -33,7 +33,10 @@ class _ContactUsPageState extends State<ContactUsPage> {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pushReplacementNamed("/"); 
+            },
             child: const Text("OK"),
           ),
         ],
@@ -51,7 +54,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
       final email = _emailCtrl.text.trim();
       final message = _messageCtrl.text.trim();
 
-      await FirebaseFirestore.instance.collection("contacts").add({
+      await FirebaseFirestore.instance.collection("Contacts").add({
         "name": name,
         "email": email,
         "message": message,
@@ -65,13 +68,13 @@ class _ContactUsPageState extends State<ContactUsPage> {
       );
 
       if (sent) {
-        await _showDialog(success: true, message: "📩 Message sent successfully!");
+        await _showDialog(success: true, message: "Message sent successfully!");
         _formKey.currentState!.reset();
       } else {
-        await _showDialog(success: false, message: "❌ Failed to send email.");
+        await _showDialog(success: false, message: "Failed to send email.");
       }
     } catch (e) {
-      await _showDialog(success: false, message: "❌ Error: $e");
+      await _showDialog(success: false, message: "Error: $e");
     } finally {
       setState(() => _isSending = false);
     }
@@ -105,7 +108,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
                   child: Column(
                     children: [
                       Text(
-                        "📩 Contact Us",
+                        "Contact Us",
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: Colors.blueAccent,
                               fontWeight: FontWeight.bold,

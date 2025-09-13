@@ -97,7 +97,7 @@ class AppDrawer extends StatelessWidget {
       route: '/admin_contacts',
     ),
     const _DrawerItem(
-      title: '📜 List Stories',
+      title: 'SList Stories',
       icon: Icons.library_books_rounded,
       route: '/stories_admin', 
     ),

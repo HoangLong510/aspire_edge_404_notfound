@@ -1,35 +1,68 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:iconsax/iconsax.dart';
-import 'package:image_picker/image_picker.dart';
 
 /// =======================
 /// Personal Stories Page
 /// =======================
-class PersonalStoriesPage extends StatelessWidget {
+class PersonalStoriesPage extends StatefulWidget {
   final bool isAdmin;
-  const PersonalStoriesPage({super.key, this.isAdmin = false});
+  final String? filterUserId;
+  const PersonalStoriesPage({
+    super.key,
+    this.isAdmin = false,
+    this.filterUserId,
+  });
+
+  @override
+  State<PersonalStoriesPage> createState() => _PersonalStoriesPageState();
+}
+
+class _PersonalStoriesPageState extends State<PersonalStoriesPage> {
+  String? _statusFilter; // null = all
 
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+    print("DEBUG => Current Firebase UID: $uid");
 
-    final query = isAdmin
-        ? FirebaseFirestore.instance
-            .collection("PersonalStories")
-            .orderBy("createdAt", descending: true)
-        : FirebaseFirestore.instance
-            .collection("PersonalStories")
-            .where("userId", isEqualTo: uid)
-            .orderBy("createdAt", descending: true);
+    Query query = FirebaseFirestore.instance.collection("Stories");
+
+    if (widget.isAdmin) {
+      if (widget.filterUserId != null) {
+        query = query.where("userId", isEqualTo: widget.filterUserId);
+      }
+    } else {
+      query = query.where("userId", isEqualTo: uid);
+    }
+
+    if (_statusFilter != null) {
+      query = query.where("status", isEqualTo: _statusFilter);
+    }
+
+    query = query.orderBy("createdAt", descending: true);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isAdmin ? "📜 List Stories" : "🌟 My Stories"),
+        title: Text(widget.isAdmin ? "All Stories" : "My Stories"),
+        actions: [
+          PopupMenuButton<String?>(
+            icon: const Icon(Icons.filter_list),
+            onSelected: (value) {
+              setState(() {
+                _statusFilter = value;
+              });
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(value: null, child: Text("All")),
+              PopupMenuItem(value: "pending", child: Text("Pending")),
+              PopupMenuItem(value: "approved", child: Text("Approved")),
+              PopupMenuItem(value: "rejected", child: Text("Rejected")),
+            ],
+          ),
+        ],
       ),
-      floatingActionButton: isAdmin
+      floatingActionButton: widget.isAdmin
           ? null
           : FloatingActionButton(
               onPressed: () {
@@ -38,7 +71,7 @@ class PersonalStoriesPage extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const AddStoryPage()),
                 );
               },
-              child: const Icon(Iconsax.add),
+              child: const Icon(Icons.add),
             ),
       body: StreamBuilder<QuerySnapshot>(
         stream: query.snapshots(),
@@ -51,6 +84,7 @@ class PersonalStoriesPage extends StatelessWidget {
           }
 
           final docs = snap.data!.docs;
+
           return ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: docs.length,
@@ -71,80 +105,52 @@ class PersonalStoriesPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundImage: (data["avatarUrl"] != null &&
-                                    data["avatarUrl"].toString().isNotEmpty)
-                                ? NetworkImage(data["avatarUrl"])
-                                : null,
-                            child: (data["avatarUrl"] == null ||
-                                    data["avatarUrl"].toString().isEmpty)
-                                ? const Icon(Icons.person)
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              data["name"] ?? "Unknown",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
                       // Show all sections
-                      ...sections.map((sec) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if ((sec["title"] ?? "").toString().isNotEmpty)
-                                  Text(
-                                    sec["title"],
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                      ...sections.map(
+                        (sec) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if ((sec["title"] ?? "").toString().isNotEmpty)
+                                Text(
+                                  sec["title"],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                if ((sec["text"] ?? "").toString().isNotEmpty)
-                                  Text(sec["text"]),
-                                if ((sec["mediaUrl"] ?? "")
-                                    .toString()
-                                    .isNotEmpty)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(sec["mediaUrl"]),
-                                  ),
-                              ],
-                            ),
-                          )),
+                                ),
+                              if ((sec["text"] ?? "").toString().isNotEmpty)
+                                Text(sec["text"]),
+                              if ((sec["mediaUrl"] ?? "").toString().isNotEmpty)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(sec["mediaUrl"]),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
 
                       const Divider(),
 
                       // Status or Admin buttons
-                      if (isAdmin)
-                        _AdminActionButtons(docId: docs[i].id)
-                      else
-                        Text(
-                          status == "approved"
-                              ? "✅ Approved"
-                              : status == "rejected"
-                                  ? "❌ Rejected: ${data["rejectedReason"] ?? ''}"
+                      widget.isAdmin
+                          ? _AdminActionButtons(docId: docs[i].id)
+                          : Text(
+                              status == "approved"
+                                  ? "✅ Approved"
+                                  : status == "rejected"
+                                  ? "❌ Rejected"
                                   : "⏳ Pending review",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: status == "approved"
-                                ? Colors.green
-                                : status == "rejected"
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: status == "approved"
+                                    ? Colors.green
+                                    : status == "rejected"
                                     ? Colors.red
                                     : Colors.orange,
-                          ),
-                        ),
+                              ),
+                            ),
                     ],
                   ),
                 ),
@@ -189,17 +195,6 @@ class _AddStoryPageState extends State<AddStoryPage> {
     });
   }
 
-  Future<void> _pickMedia(_StorySection section) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() {
-        section.localFile = File(picked.path);
-        section.mediaType = "image";
-      });
-    }
-  }
-
   Future<void> _submit() async {
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
@@ -210,31 +205,47 @@ class _AddStoryPageState extends State<AddStoryPage> {
 
       final payload = {
         "userId": user.uid,
-        "name": user.displayName ?? "Anonymous",
-        "avatarUrl": user.photoURL ?? "",
         "sections": sections.map((s) => s.toJson()).toList(),
         "status": "pending",
-        "approved": false,
-        "rejectedReason": null,
-        "createdAt": FieldValue.serverTimestamp(),
+        "createdAt": DateTime.now(),
       };
 
-      await FirebaseFirestore.instance
-          .collection("PersonalStories")
-          .add(payload);
+      await FirebaseFirestore.instance.collection("Stories").add(payload);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Story submitted, pending approval")),
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Success"),
+          content: const Text("✅ Story submitted, pending approval"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
       );
-      Navigator.pop(context);
+
+      // Quay lại trang list
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e")),
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Error"),
+          content: Text("❌ Error: $e"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
       );
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -258,13 +269,16 @@ class _AddStoryPageState extends State<AddStoryPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Text("Section ${idx + 1}",
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(
+                            "Section ${idx + 1}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                           const Spacer(),
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
@@ -289,43 +303,6 @@ class _AddStoryPageState extends State<AddStoryPage> {
                           border: OutlineInputBorder(),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      if (section.localFile != null)
-                        Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                section.localFile!,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.black54,
-                                child: IconButton(
-                                  icon: const Icon(Icons.close,
-                                      color: Colors.white),
-                                  onPressed: () {
-                                    setState(() {
-                                      section.localFile = null;
-                                      section.mediaType = null;
-                                    });
-                                  },
-                                ),
-                              ),
-                            )
-                          ],
-                        )
-                      else
-                        OutlinedButton.icon(
-                          onPressed: () => _pickMedia(section),
-                          icon: const Icon(Icons.add_photo_alternate),
-                          label: const Text("Add image / video"),
-                        ),
                     ],
                   ),
                 ),
@@ -354,15 +331,13 @@ class _AddStoryPageState extends State<AddStoryPage> {
 class _StorySection {
   final titleCtrl = TextEditingController();
   final textCtrl = TextEditingController();
-  File? localFile;
-  String? mediaType;
 
   Map<String, dynamic> toJson() => {
-        "title": titleCtrl.text.trim(),
-        "text": textCtrl.text.trim(),
-        "mediaUrl": null,
-        "mediaType": mediaType,
-      };
+    "title": titleCtrl.text.trim(),
+    "text": textCtrl.text.trim(),
+    "mediaUrl": null,
+    "mediaType": "text",
+  };
 }
 
 /// ========================
@@ -373,47 +348,33 @@ class _AdminActionButtons extends StatelessWidget {
   const _AdminActionButtons({required this.docId});
 
   void _approve() {
-    FirebaseFirestore.instance
-        .collection("PersonalStories")
-        .doc(docId)
-        .update({
-      "approved": true,
+    FirebaseFirestore.instance.collection("Stories").doc(docId).update({
       "status": "approved",
-      "rejectedReason": null,
     });
   }
 
   void _reject(BuildContext context) async {
-    String? reason = await showDialog<String>(
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        String temp = "";
-        return AlertDialog(
-          title: const Text("Reject Story"),
-          content: TextField(
-            onChanged: (v) => temp = v,
-            decoration:
-                const InputDecoration(hintText: "Enter reason (optional)"),
+      builder: (ctx) => AlertDialog(
+        title: const Text("Reject Story"),
+        content: const Text("Are you sure you want to reject this story?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Cancel")),
-            ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, temp),
-                child: const Text("Reject")),
-          ],
-        );
-      },
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Reject"),
+          ),
+        ],
+      ),
     );
-    if (reason != null) {
-      FirebaseFirestore.instance
-          .collection("PersonalStories")
-          .doc(docId)
-          .update({
-        "approved": false,
+
+    if (confirm == true) {
+      FirebaseFirestore.instance.collection("Stories").doc(docId).update({
         "status": "rejected",
-        "rejectedReason": reason,
       });
     }
   }
@@ -424,12 +385,12 @@ class _AdminActionButtons extends StatelessWidget {
       children: [
         TextButton.icon(
           onPressed: _approve,
-          icon: const Icon(Iconsax.tick_circle, color: Colors.green),
+          icon: const Icon(Icons.check_circle, color: Colors.green),
           label: const Text("Approve"),
         ),
         TextButton.icon(
           onPressed: () => _reject(context),
-          icon: const Icon(Iconsax.close_circle, color: Colors.red),
+          icon: const Icon(Icons.cancel, color: Colors.red),
           label: const Text("Reject"),
         ),
       ],
