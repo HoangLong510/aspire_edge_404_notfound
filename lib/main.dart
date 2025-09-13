@@ -186,8 +186,6 @@ class _MyAppState extends State<MyApp> {
             widget.withLayout(const CoachingToolsPage(), '/coaching_tools'),
         '/resources_hub': (context) =>
             widget.withLayout(const CareerDocsAllPage(), '/resources_hub'),
-        '/testimonials': (context) =>
-            widget.withLayout(const TestimonialsPage(), '/testimonials'),
         '/stories': (context) => widget.withLayout(
           const PersonalStoriesPage(isAdmin: false),
           '/stories',
