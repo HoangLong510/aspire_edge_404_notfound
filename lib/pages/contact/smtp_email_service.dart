@@ -3,8 +3,9 @@ import 'package:mailer/smtp_server/gmail.dart';
 
 class SmtpEmailService {
   static const String _username = "team02aptech@gmail.com";
-  static const String _password = "npytjpxmmkwizhts";      
+  static const String _password = "npytjpxmmkwizhts";
 
+  /// Gửi email liên hệ từ người dùng
   static Future<bool> sendContactEmail({
     required String name,
     required String email,
@@ -27,6 +28,7 @@ class SmtpEmailService {
     }
   }
 
+  /// Gửi email OTP để xác thực người dùng
   static Future<bool> sendOtpEmail({
     required String toEmail,
     required String otp,
@@ -48,13 +50,36 @@ class SmtpEmailService {
     }
   }
 
+  /// Gửi email trả lời từ admin tới người dùng
+  static Future<bool> sendReplyEmail({
+    required String toEmail,
+    required String userName,
+    required String replyMessage,
+  }) async {
+    final smtpServer = gmail(_username, _password);
+
+    final mail = Message()
+      ..from = Address(_username, "AspireEdge Admin")
+      ..recipients.add(toEmail)
+      ..subject = "📩 Reply to your message"
+      ..html = _replyTemplate(userName, replyMessage);
+
+    try {
+      await send(mail, smtpServer);
+      return true;
+    } catch (e) {
+      print("Reply email failed: $e");
+      return false;
+    }
+  }
+
   static String _contactTemplate(String name, String email, String message) => """
 <div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #212121">
   <div style="max-width: 600px; margin: auto">
     <div style="text-align: center; background-color: #2196f3; padding: 40px 16px; border-radius: 32px 32px 0 0;">
-      <img style="height: 140px; background-color: #ffffff; padding: 12px; border-radius: 12px;" 
-           src="https://res.cloudinary.com/daxpkqhmd/image/upload/v1757581315/image-Photoroom_vrxff8.png" 
-           alt="AspireEdge Logo"/>
+      <img style="height: 140px; background-color: #ffffff; padding: 12px; border-radius: 12px;"
+            src="https://res.cloudinary.com/daxpkqhmd/image/upload/v1757581315/image-Photoroom_vrxff8.png"
+            alt="AspireEdge Logo"/>
     </div>
     <div style="padding: 28px">
       <h1 style="font-size: 24px; margin-bottom: 20px; color: #2196f3">📩 New Contact Message</h1>
@@ -89,4 +114,31 @@ class SmtpEmailService {
     </div>
   </div>
   """;
+
+  static String _replyTemplate(String userName, String replyMessage) => """
+<div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #212121">
+  <div style="max-width: 600px; margin: auto">
+    <div style="text-align: center; background-color: #2196f3; padding: 40px 16px; border-radius: 32px 32px 0 0;">
+      <img style="height: 140px; background-color: #ffffff; padding: 12px; border-radius: 12px;"
+            src="https://res.cloudinary.com/daxpkqhmd/image/upload/v1757581315/image-Photoroom_vrxff8.png"
+            alt="AspireEdge Logo"/>
+    </div>
+    <div style="padding: 28px">
+      <h1 style="font-size: 24px; margin-bottom: 20px; color: #2196f3">📩 Aspire Edge Reply</h1>
+      <p><strong>Dear $userName,</strong></p>
+      <p>We have reviewed your message. Here is our response:</p>
+      <p style="background: #f5f5f5; padding: 14px; border-radius: 8px">$replyMessage</p>
+      <p style="margin-top: 28px; color: #555">
+        Thank you for using <strong>AspireEdge</strong>.
+        We truly appreciate your trust and feedback 💙
+      </p>
+    </div>
+    <div style="text-align: center; background-color: #2196f3; padding: 20px; border-radius: 0 0 32px 32px; color: #fff;">
+      <p>For more help, contact
+        <a href="mailto:team02aptech@gmail.com" style="color: #fff; text-decoration: underline">team02aptech@gmail.com</a>
+      </p>
+    </div>
+  </div>
+</div>
+""";
 }

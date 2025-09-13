@@ -5,9 +5,8 @@ import 'career_add_page.dart';
 import 'career_path_page.dart';
 
 class CareerDetailPage extends StatefulWidget {
-  final DocumentSnapshot career;
-
-  const CareerDetailPage({super.key, required this.career});
+  final String careerId;
+  const CareerDetailPage({super.key, required this.careerId});
 
   @override
   State<CareerDetailPage> createState() => _CareerDetailPageState();
@@ -17,11 +16,13 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
   String? _userTier;
+  DocumentSnapshot? _careerData;
 
   @override
   void initState() {
     super.initState();
     _loadUserTier();
+    _loadCareer();
   }
 
   Future<void> _loadUserTier() async {
@@ -34,9 +35,23 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
     }
   }
 
+  Future<void> _loadCareer() async {
+    final doc =
+    await _firestore.collection("CareerBank").doc(widget.careerId).get();
+    setState(() {
+      _careerData = doc;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final data = widget.career;
+    if (_careerData == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final data = _careerData!;
 
     return Scaffold(
       appBar: AppBar(
@@ -48,7 +63,7 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CareerAddPage(career: widget.career),
+                    builder: (_) => CareerAddPage(career: data),
                   ),
                 );
               },

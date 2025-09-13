@@ -1,3 +1,4 @@
+import 'package:aspire_edge_404_notfound/pages/career_doc_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -364,6 +365,46 @@ class CareerPathPage extends StatelessWidget {
       );
     }
 
+    Widget _docsButton(String careerId, Color primary) {
+      return StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection("CareerBank")
+            .doc(careerId)
+            .collection("Docs")
+            .limit(1) // chỉ cần check có doc hay không
+            .snapshots(),
+        builder: (ctx, snapshot) {
+          if (!snapshot.hasData) return const SizedBox.shrink();
+          final hasDocs = snapshot.data!.docs.isNotEmpty;
+
+          if (!hasDocs) return const SizedBox.shrink();
+
+          return ElevatedButton.icon(
+            onPressed: () {
+              // 👉 Điều hướng sang trang CareerDocsPage hiển thị danh sách
+              Navigator.push(
+                ctx,
+                MaterialPageRoute(
+                  builder: (_) => CareerDocsPage(careerId: careerId),
+                ),
+              );
+            },
+            icon: const Icon(Icons.file_download),
+            label: const Text("Tải tài liệu"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          );
+        },
+      );
+    }
+
+
+
     return Scaffold(
       appBar: AppBar(),
       body: Container(
@@ -395,6 +436,8 @@ class CareerPathPage extends StatelessWidget {
                   child: Column(
                     children: [
                       _sectionHeader(),
+                      const SizedBox(height: 16),
+                      _docsButton(careerId, primary),
                       const SizedBox(height: 16),
 
                       if (paths.isEmpty)
