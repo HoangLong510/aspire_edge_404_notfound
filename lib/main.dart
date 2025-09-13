@@ -28,14 +28,17 @@ import 'package:aspire_edge_404_notfound/pages/profile_page.dart';
 import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
 import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
+import 'package:aspire_edge_404_notfound/pages/stories/add_story_page.dart';
+import 'package:aspire_edge_404_notfound/pages/stories/admin_stories_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/personal_stories_page.dart';
+import 'package:aspire_edge_404_notfound/pages/stories/public_story_page.dart';
+import 'package:aspire_edge_404_notfound/pages/stories/story_detail_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 const portName = "downloader_send_port";
-
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -160,14 +163,18 @@ class _MyAppState extends State<MyApp> {
             widget.withLayout(const CoachingToolsPage(), '/coaching_tools'),
         '/resources_hub': (context) =>
             widget.withLayout(const CareerDocsAllPage(), '/resources_hub'),
-        '/stories': (context) => widget.withLayout(
-          const PersonalStoriesPage(isAdmin: false),
-          '/stories',
-        ),
-        '/stories_admin': (context) => widget.withLayout(
-          const PersonalStoriesPage(isAdmin: true),
-          '/stories_admin',
-        ),
+        '/my_stories': (context) =>
+            widget.withLayout(const PersonalStoriesPage(), '/my_stories'),
+        '/stories': (context) =>
+            widget.withLayout(const PublicStoriesPage(), '/stories'),
+        '/stories_admin': (context) =>
+            widget.withLayout(const AdminStoriesPage(), '/stories_admin'),
+        '/add_story': (context) =>
+            widget.withLayout(const AddStoryPage(), '/add_story'),
+        '/story_detail': (context) {
+          final storyId = ModalRoute.of(context)!.settings.arguments as String;
+          return StoryDetailPage(storyId: storyId);
+        },
         '/contact_us': (context) =>
             widget.withLayout(const ContactUsPage(), '/contact_us'),
         "/industry_intro": (context) => const IndustryIntroPage(),
