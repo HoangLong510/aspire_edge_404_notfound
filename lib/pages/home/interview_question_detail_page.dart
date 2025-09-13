@@ -5,19 +5,55 @@ import 'package:cached_network_image/cached_network_image.dart';
 class InterviewQuestionDetailPage extends StatelessWidget {
   const InterviewQuestionDetailPage({super.key});
 
+  // Mock data: multiple topics
+  final List<Map<String, dynamic>> topics = const [
+    {
+      "topic": "Self-Introduction",
+      "question": "Can you tell me about yourself?",
+      "suggestion":
+          "Give a brief overview: education, relevant experience, and why you fit the role. Keep it short and focused on highlights.",
+      "examples": [
+        "I recently graduated in Computer Science, completed an internship in ReactJS, and I am passionate about web development.",
+        "I have two years of experience in mobile app development using Flutter and enjoy working in innovative teams.",
+        "I worked as a freelance UI/UX designer, gaining experience in client communication and project management."
+      ],
+    },
+    {
+      "topic": "Strengths",
+      "question": "What are your key strengths?",
+      "suggestion":
+          "Focus on 2–3 strengths that are directly relevant to the job. Provide short examples.",
+      "examples": [
+        "I am detail-oriented and have strong problem-solving skills. For example, I optimized a database query reducing load time by 40%.",
+        "I am an effective communicator, which helps me work smoothly with cross-functional teams.",
+      ],
+    },
+    {
+      "topic": "Weaknesses",
+      "question": "What is your biggest weakness?",
+      "suggestion":
+          "Choose a real weakness, but explain how you are actively improving it. Avoid clichés like 'perfectionist'.",
+      "examples": [
+        "I used to struggle with public speaking, but I joined a Toastmasters club to build my confidence.",
+        "I sometimes take too many responsibilities, but I now prioritize tasks and delegate when needed."
+      ],
+    },
+    {
+      "topic": "Future Goals",
+      "question": "Where do you see yourself in 5 years?",
+      "suggestion":
+          "Show ambition but align with the company’s vision. Highlight learning and growth rather than a specific job title.",
+      "examples": [
+        "I hope to become a senior software engineer leading a small team while continuing to expand my technical expertise.",
+        "I see myself growing into a leadership role where I can mentor junior developers."
+      ],
+    }
+  ];
+
   @override
   Widget build(BuildContext context) {
-    // dữ liệu mẫu
-    const image =
+    const bannerImage =
         "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757492366/career-advice-abstract-concept-vector-illustration_107173-20083_qdqawl.avif";
-    const question = "Hãy giới thiệu về bản thân?";
-    const answer =
-        "Bạn nên giới thiệu ngắn gọn: học vấn, kinh nghiệm nổi bật và lý do bạn phù hợp với vị trí. Tránh kể quá dài dòng, tập trung vào điểm mạnh và thành tựu liên quan trực tiếp tới công việc.";
-    const exampleAnswers = [
-      "Tôi vừa tốt nghiệp ngành CNTT, đã có kinh nghiệm thực tập ReactJS, yêu thích phát triển web và mong muốn gắn bó lâu dài trong lĩnh vực frontend.",
-      "Tôi đã làm việc 2 năm trong mảng mobile Flutter, tham gia nhiều dự án team-work, và rất thích môi trường đổi mới sáng tạo.",
-      "Tôi từng tham gia nhiều dự án freelance về UI/UX, qua đó tích lũy được kỹ năng giao tiếp với khách hàng và quản lý tiến độ, mong muốn áp dụng tại vị trí chính thức."
-    ];
 
     return Scaffold(
       body: CustomScrollView(
@@ -26,13 +62,16 @@ class InterviewQuestionDetailPage extends StatelessWidget {
             pinned: true,
             expandedHeight: 220,
             flexibleSpace: FlexibleSpaceBar(
-              title: const Text("Chi tiết câu hỏi",
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
+              title: const Text(
+                "Interview Q&A Guide",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
               background: CachedNetworkImage(
-                imageUrl: image,
+                imageUrl: bannerImage,
                 fit: BoxFit.cover,
                 color: Colors.black45,
                 colorBlendMode: BlendMode.darken,
@@ -43,123 +82,136 @@ class InterviewQuestionDetailPage extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Question highlight
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade50, Colors.blue.shade100],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blueAccent),
+                  ...topics.map(
+                    (topic) => Padding(
+                      padding: const EdgeInsets.only(bottom: 28),
+                      child: _buildTopicCard(context, topic),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.help_outline,
-                            color: Colors.blue, size: 28),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            question,
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
-
-                  // Suggestion box
-                  Text("Gợi ý trả lời",
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.lightbulb_outline,
-                            color: Colors.indigo, size: 26),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(answer,
-                              style: const TextStyle(
-                                  fontSize: 15, height: 1.4, color: Colors.black87)),
-                        ),
-                      ],
-                    ),
-                  ).animate().slideX(begin: -0.2, duration: 500.ms),
-                  const Divider(height: 32),
-
-                  // Example answers
-                  Text("Ví dụ trả lời",
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 12),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: exampleAnswers.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      return Card(
-                        elevation: 3,
-                        shadowColor: Colors.blue.shade100,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: Colors.blue.shade50,
-                                child: const Icon(Icons.chat_bubble_outline,
-                                    color: Colors.blue, size: 18),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                  child: Text(exampleAnswers[index],
-                                      style: const TextStyle(
-                                          fontSize: 14, height: 1.4))),
-                            ],
-                          ),
-                        ),
-                      ).animate().fadeIn(
-                          duration: 500.ms, delay: (400 + index * 200).ms);
-                    },
                   ),
                   const SizedBox(height: 32),
-
-                  // CTA button
                   Center(
                     child: ElevatedButton.icon(
                       onPressed: () =>
                           Navigator.pushNamed(context, "/career_quiz"),
                       icon: const Icon(Icons.play_arrow),
-                      label: const Text("Thử trả lời ngay 🚀"),
+                      label: const Text("Practice Your Answers 🚀"),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 16),
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ).animate().scale(duration: 400.ms, delay: 800.ms),
-                  )
+                  ),
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTopicCard(BuildContext context, Map<String, dynamic> topic) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Topic title
+        Text(
+          "📌 ${topic['topic']}",
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+
+        // Question box
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade50, Colors.blue.shade100],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blueAccent),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.help_outline, color: Colors.blue, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  topic['question'],
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
+        const SizedBox(height: 16),
+
+        // Suggestion
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.lightbulb_outline,
+                color: Colors.indigo, size: 26),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                topic['suggestion'],
+                style: const TextStyle(fontSize: 14, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+        const Divider(height: 24),
+
+        // Example answers
+        Text("Example Answers",
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        ...List.generate(topic['examples'].length, (index) {
+          return Card(
+            elevation: 2,
+            margin: const EdgeInsets.only(bottom: 12),
+            shadowColor: Colors.blue.shade100,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.blue.shade50,
+                    child: const Icon(Icons.chat_bubble_outline,
+                        color: Colors.blue, size: 16),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      topic['examples'][index],
+                      style:
+                          const TextStyle(fontSize: 14, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ).animate().fadeIn(
+              duration: 500.ms, delay: (300 + index * 150).ms);
+        }),
+      ],
     );
   }
 }

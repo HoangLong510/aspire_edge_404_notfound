@@ -11,6 +11,10 @@ class StoryCard extends StatelessWidget {
   final String? authorEmail;
   final String? authorAvatar;
 
+  // 👇 Thêm số liệu tương tác
+  final int likesCount;
+  final int commentsCount;
+
   // 👇 Trạng thái chỉ dành cho admin
   final String? status;
   final Widget? footer;
@@ -25,6 +29,8 @@ class StoryCard extends StatelessWidget {
     this.authorName,
     this.authorEmail,
     this.authorAvatar,
+    this.likesCount = 0,
+    this.commentsCount = 0,
     this.status,
     this.footer,
     this.showStatus = false, // 👈 mặc định ẩn cho Public
@@ -127,25 +133,48 @@ class StoryCard extends StatelessWidget {
                               : null,
                         ),
                         const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              authorName ?? "Anonymous",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            if (authorEmail != null &&
-                                authorEmail!.isNotEmpty)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                authorEmail!,
+                                authorName ?? "Anonymous",
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
                                 ),
                               ),
+                              if (authorEmail != null &&
+                                  authorEmail!.isNotEmpty)
+                                Text(
+                                  authorEmail!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        // ❤️ Likes + 💬 Comments
+                        Row(
+                          children: [
+                            const Icon(Icons.favorite,
+                                size: 16, color: Colors.redAccent),
+                            const SizedBox(width: 4),
+                            Text(
+                              likesCount.toString(),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.comment,
+                                size: 16, color: Colors.blueGrey),
+                            const SizedBox(width: 4),
+                            Text(
+                              commentsCount.toString(),
+                              style: const TextStyle(fontSize: 13),
+                            ),
                           ],
                         ),
                       ],
