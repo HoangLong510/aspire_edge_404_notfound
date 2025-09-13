@@ -108,7 +108,6 @@ class _MainLayoutState extends State<MainLayout> {
         final String avatarUrl = (userData['AvatarUrl'] ?? '').toString();
         final String tier = (userData['Tier'] ?? '').toString();
 
-        // Bọc bằng NotificationsListener nếu có uid
         final String? uid = _auth.currentUser?.uid;
         Widget scaffold = _buildMainScaffold(fullName, email, avatarUrl, tier);
         if (uid != null) {
@@ -139,6 +138,7 @@ class _MainLayoutState extends State<MainLayout> {
             fullName: fullName,
             email: email,
             avatarUrl: avatarUrl,
+            tier: tier,
             onProfile: () => Navigator.of(context).pushNamed('/profile'),
             onChangePassword: () => Navigator.of(context).pushNamed('/change-password'),
             onLogout: _showLogoutConfirmationDialog,
@@ -150,7 +150,7 @@ class _MainLayoutState extends State<MainLayout> {
         fullName: fullName,
         email: email,
         avatarUrl: avatarUrl,
-         isAdmin: tier.toLowerCase() == 'admin',
+        isAdmin: tier.toLowerCase() == 'admin',
       ),
       body: widget.body,
       backgroundColor: color.background,
@@ -167,6 +167,7 @@ class _UserMenuAnchor extends StatefulWidget {
     required this.fullName,
     required this.email,
     required this.avatarUrl,
+    required this.tier,
     required this.onProfile,
     required this.onChangePassword,
     required this.onLogout,
@@ -175,6 +176,7 @@ class _UserMenuAnchor extends StatefulWidget {
   final String fullName;
   final String email;
   final String avatarUrl;
+  final String tier;
   final VoidCallback onProfile;
   final VoidCallback onChangePassword;
   final VoidCallback onLogout;
@@ -211,14 +213,13 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
             padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(vertical: 8)),
-            shadowColor: MaterialStatePropertyAll(Colors.black.withOpacity(.25)),
           ),
         ),
         child: MenuAnchor(
           controller: _menuController,
           alignmentOffset: const Offset(0, 8),
           menuChildren: [
-            // Header: bấm -> /profile
+            // Header
             MenuItemButton(
               onPressed: () {
                 _menuController.close();
@@ -259,6 +260,8 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
               ),
             ),
             const Divider(height: 8, thickness: 1),
+
+            // Change Password
             MenuItemButton(
               onPressed: () {
                 _menuController.close();
@@ -267,6 +270,19 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
               leadingIcon: Icon(Icons.lock_outline, color: cs.onSurface),
               child: const Text('Change Password'),
             ),
+
+            // 👉 My Stories (only if not admin)
+            if (widget.tier.toLowerCase() != 'admin')
+              MenuItemButton(
+                onPressed: () {
+                  _menuController.close();
+                  Navigator.of(context).pushNamed('/my_stories');
+                },
+                leadingIcon: Icon(Icons.menu_book, color: cs.onSurface),
+                child: const Text('My Stories'),
+              ),
+
+            // Logout
             MenuItemButton(
               onPressed: () {
                 _menuController.close();
@@ -308,7 +324,6 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
   }
 }
 
-/// Nút pill hiển thị trên AppBar (avatar + mũi tên)
 class _PillAvatarButton extends StatelessWidget {
   const _PillAvatarButton({
     required this.avatarUrl,
@@ -350,7 +365,6 @@ class _PillAvatarButton extends StatelessWidget {
   }
 }
 
-/// Avatar tròn dùng `AvatarUrl` có fallback chữ cái đầu
 class _CircleAvatar extends StatelessWidget {
   const _CircleAvatar({
     required this.imageUrl,
