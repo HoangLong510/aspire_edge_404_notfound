@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:isolate';
+import 'dart:ui';
 
 import 'package:aspire_edge_404_notfound/layouts/main_layout.dart';
 import 'package:aspire_edge_404_notfound/pages/about_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/achievements_slider_page.dart';
 import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
 import 'package:aspire_edge_404_notfound/pages/answer_quiz_page.dart';
+import 'package:aspire_edge_404_notfound/pages/career_docs_all_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_matches_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
@@ -26,18 +29,30 @@ import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/pages/profile_page.dart';
 import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
-import 'package:aspire_edge_404_notfound/pages/resource_hub_page.dart';
 import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/personal_stories_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+
+const portName = "downloader_send_port";
+
+@pragma('vm:entry-point')
+void downloadCallback(String id, int status, int progress) {
+  final SendPort? send = IsolateNameServer.lookupPortByName(portName);
+  send?.send([id, status, progress]);
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await LocalNoti.init();
+  await FlutterDownloader.initialize(debug: true);
+  // đăng ký callback
+  FlutterDownloader.registerCallback(downloadCallback);
+
   runApp(const MyApp());
 }
 
@@ -169,8 +184,10 @@ class _MyAppState extends State<MyApp> {
         // Tools & resources
         '/coaching_tools': (context) =>
             widget.withLayout(const CoachingToolsPage(), '/coaching_tools'),
-        '/resource_hub': (context) =>
-            widget.withLayout(const ResourceHubPage(), '/resource_hub'),
+        '/resources_hub': (context) =>
+            widget.withLayout(const CareerDocsAllPage(), '/resources_hub'),
+        '/testimonials': (context) =>
+            widget.withLayout(const TestimonialsPage(), '/testimonials'),
         '/stories': (context) => widget.withLayout(
           const PersonalStoriesPage(isAdmin: false),
           '/stories',
