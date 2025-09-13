@@ -52,7 +52,7 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-	<!-- 🔹 PERMISSIONS -->
+	<!-- PERMISSIONS -->
 	<key>NSCameraUsageDescription</key>
 	<string>Ứng dụng cần quyền sử dụng camera để chụp ảnh hoặc quay video.</string>
 
@@ -70,15 +70,7 @@
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Ứng dụng muốn gửi thông báo cho bạn.</string>
 
-	<!-- 🔹 BACKGROUND (flutter_downloader) -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>remote-notification</string>
-	</array>
-
-	<!-- 🔹 OPTIONAL: Debugging trong simulator -->
+	<!-- OPTIONAL: Debugging trong simulator -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Cho phép Flutter tools kết nối debug ứng dụng (chỉ hiện ở build debug).</string>
 	<key>NSBonjourServices</key>

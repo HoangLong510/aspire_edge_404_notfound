@@ -1,6 +1,5 @@
-import UIKit
 import Flutter
-import flutter_downloader
+import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,12 +7,6 @@ import flutter_downloader
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-
-    // Khởi tạo flutter_downloader
-    FlutterDownloaderPlugin.setPluginRegistrantCallback { registry in
-        GeneratedPluginRegistrant.register(with: registry)
-    }
-
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
