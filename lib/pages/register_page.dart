@@ -1,9 +1,12 @@
-import 'package:aspire_edge_404_notfound/config/industries.dart';
+import 'dart:async';
+import 'dart:math';
+import 'package:aspire_edge_404_notfound/pages/contact/smtp_email_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:aspire_edge_404_notfound/config/industries.dart';
 
-// ===================== Register Page =====================
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -29,107 +32,123 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _selectedIndustryId;
   String? _selectedCareerId;
   String? _selectedCareerPathId;
-  String? _userId;
+
+  String? _emailError;
+  String? _phoneError;
 
   bool _isLoading = false;
-  bool _isStepTwo = false; // flag cho bước 2
+  bool _isStepTwo = false;
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
-  // ================= Register User (Step 1) =================
+  Future<bool> _isEmailTaken(String email) async {
+    final usersRef = FirebaseFirestore.instance.collection('Users');
+    final emailSnap = await usersRef
+        .where('E-mail', isEqualTo: email)
+        .limit(1)
+        .get();
+    return emailSnap.docs.isNotEmpty;
+  }
+
+  Future<bool> _isPhoneTaken(String phone) async {
+    final usersRef = FirebaseFirestore.instance.collection('Users');
+    final phoneSnap = await usersRef
+        .where('Phone', isEqualTo: phone)
+        .limit(1)
+        .get();
+    return phoneSnap.docs.isNotEmpty;
+  }
+
   Future<void> _registerUser() async {
+    setState(() {
+      _emailError = null;
+      _phoneError = null;
+      _autovalidateMode = AutovalidateMode.onUserInteraction;
+    });
+
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
+      _showMessage('Passwords do not match', Colors.red);
       return;
     }
 
-    setState(() => _isLoading = true);
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
 
-    try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          );
-      _userId = userCredential.user!.uid;
+    final emailTaken = await _isEmailTaken(email);
+    final phoneTaken = await _isPhoneTaken(phone);
 
-      await FirebaseFirestore.instance.collection('Users').doc(_userId).set({
-        'User_Id': _userId,
-        'Name': _nameController.text.trim(),
-        'E-mail': _emailController.text.trim(),
-        'Phone': _phoneController.text.trim(),
-        'Tier': _selectedTierKey,
-        'IndustryId': null,
-        'CareerBankId': null,
-        'CareerPathId': null,
+    if (emailTaken || phoneTaken) {
+      setState(() {
+        if (emailTaken) _emailError = 'This email is already in use';
+        if (phoneTaken) _phoneError = 'This phone number is already in use';
       });
+      return;
+    }
 
-      if (mounted) {
-        if (_selectedTierKey == 'professionals') {
-          // chuyển qua step 2 ngay trên RegisterPage
-          setState(() {
-            _isStepTwo = true;
-          });
-        } else {
-          await FirebaseAuth.instance.signOut();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration successful! Please log in.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.of(context).pop();
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      String message = 'An error occurred. Please try again.';
-      if (e.code == 'weak-password') {
-        message = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'This email is already in use.';
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (_selectedTierKey == 'professionals') {
+      setState(() => _isStepTwo = true);
+    } else {
+      _goToOtpVerification(extraData: {});
     }
   }
 
-  // ================= Save Professional Info (Step 2) =================
   Future<void> _saveProfessionalInfo() async {
     if (_selectedIndustryId == null ||
         _selectedCareerId == null ||
         _selectedCareerPathId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all fields')),
-      );
+      _showMessage('Please complete all fields', Colors.red);
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      await FirebaseFirestore.instance.collection('Users').doc(_userId).update({
+    _goToOtpVerification(
+      extraData: {
         'IndustryId': _selectedIndustryId,
         'CareerBankId': _selectedCareerId,
         'CareerPathId': _selectedCareerPathId,
-      });
+      },
+    );
+  }
 
-      if (mounted) {
-        await FirebaseAuth.instance.signOut();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please log in.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop();
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+  Future<void> _goToOtpVerification({
+    required Map<String, dynamic> extraData,
+  }) async {
+    setState(() => _isLoading = true);
+
+    final otp = (Random().nextInt(900000) + 100000).toString();
+    final expiry = DateTime.now().add(const Duration(minutes: 1));
+
+    final tempData = {
+      'Name': _nameController.text.trim(),
+      'E-mail': _emailController.text.trim(),
+      'Password': _passwordController.text.trim(),
+      'Phone': _phoneController.text.trim(),
+      'Tier': _selectedTierKey,
+      ...extraData,
+      'otp': otp,
+      'otpExpiry': expiry.toIso8601String(),
+    };
+
+    await SmtpEmailService.sendOtpEmail(
+      toEmail: _emailController.text.trim(),
+      otp: otp,
+    );
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationPage(tempData: tempData),
+        ),
+      );
     }
+  }
+
+  void _showMessage(String text, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(text), backgroundColor: color));
   }
 
   @override
@@ -142,16 +161,18 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  InputDecoration _buildInputDecoration(String label, IconData icon) {
+  InputDecoration _buildInputDecoration(
+    String label,
+    IconData icon, {
+    String? errorText,
+  }) {
     return InputDecoration(
       labelText: label,
+      errorText: errorText,
       prefixIcon: Icon(icon, color: Theme.of(context).primaryColor),
       filled: true,
       fillColor: Colors.grey.withOpacity(0.1),
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 18.0,
-        horizontal: 12.0,
-      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -163,24 +184,34 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // ================= UI =================
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-          child: !_isStepTwo ? _buildStepOne(context) : _buildStepTwo(context),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: !_isStepTwo
+                  ? _buildStepOne(context)
+                  : _buildStepTwo(context),
+            ),
+          ),
         ),
-      ),
+        if (_isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+      ],
     );
   }
 
-  // Step 1 UI
   Widget _buildStepOne(BuildContext context) {
     return Form(
       key: _formKey,
+      autovalidateMode: _autovalidateMode,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -201,8 +232,6 @@ class _RegisterPageState extends State<RegisterPage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
-
-          // Name
           TextFormField(
             controller: _nameController,
             decoration: _buildInputDecoration(
@@ -212,19 +241,21 @@ class _RegisterPageState extends State<RegisterPage> {
             validator: (v) => v!.isEmpty ? 'Please enter your full name' : null,
           ),
           const SizedBox(height: 20),
-
-          // Email
           TextFormField(
             controller: _emailController,
-            decoration: _buildInputDecoration('E-mail', Icons.email_outlined),
+            decoration: _buildInputDecoration(
+              'E-mail',
+              Icons.email_outlined,
+              errorText: _emailError,
+            ),
             keyboardType: TextInputType.emailAddress,
-            validator: (v) => v!.isEmpty || !v.contains('@')
-                ? 'Please enter a valid email'
-                : null,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Please enter your email';
+              if (!v.contains('@')) return 'Please enter a valid email';
+              return null;
+            },
           ),
           const SizedBox(height: 20),
-
-          // Password
           TextFormField(
             controller: _passwordController,
             decoration: _buildInputDecoration('Password', Icons.lock_outline),
@@ -233,8 +264,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 v!.length < 6 ? 'Password must be at least 6 characters' : null,
           ),
           const SizedBox(height: 20),
-
-          // Confirm password
           TextFormField(
             controller: _confirmPasswordController,
             decoration: _buildInputDecoration(
@@ -242,25 +271,30 @@ class _RegisterPageState extends State<RegisterPage> {
               Icons.lock_outline,
             ),
             obscureText: true,
-            validator: (v) =>
-                v!.isEmpty ? 'Please confirm your password' : null,
+            validator: (v) {
+              if (v!.isEmpty) return 'Please confirm your password';
+              if (v != _passwordController.text)
+                return 'Passwords do not match';
+              return null;
+            },
           ),
           const SizedBox(height: 20),
-
-          // Phone
           TextFormField(
             controller: _phoneController,
             decoration: _buildInputDecoration(
               'Phone Number',
               Icons.phone_outlined,
+              errorText: _phoneError,
             ),
             keyboardType: TextInputType.phone,
-            validator: (v) =>
-                v!.isEmpty ? 'Please enter your phone number' : null,
+            validator: (v) {
+              if (v == null || v.isEmpty)
+                return 'Please enter your phone number';
+              if (v.length < 9) return 'Phone number seems too short';
+              return null;
+            },
           ),
           const SizedBox(height: 20),
-
-          // Tier
           DropdownButtonFormField<String>(
             value: _selectedTierKey,
             decoration: _buildInputDecoration(
@@ -272,62 +306,27 @@ class _RegisterPageState extends State<RegisterPage> {
                   (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
                 )
                 .toList(),
-            onChanged: (v) {
-              setState(() {
-                _selectedTierKey = v;
-              });
-            },
+            onChanged: (v) => setState(() => _selectedTierKey = v),
             validator: (v) => v == null ? 'Please select an option' : null,
           ),
           const SizedBox(height: 40),
-
-          // Submit
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : (_selectedTierKey == 'professionals'
-                    ? ElevatedButton.icon(
-                        onPressed: _registerUser,
-                        icon: const Icon(Icons.arrow_forward),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.deepPurple, // màu khác cho nổi bật
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 6,
-                        ),
-                        label: const Text(
-                          "Next Step",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                    : ElevatedButton(
-                        onPressed: _registerUser,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 5,
-                        ),
-                        child: const Text(
-                          'Register',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )),
+          ElevatedButton(
+            onPressed: _registerUser,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 5,
+            ),
+            child: Text(
+              _selectedTierKey == 'professionals' ? 'Next Step' : 'Register',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
           const SizedBox(height: 24),
-
-          // Login link
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -352,7 +351,6 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // Step 2 UI (professionals only)
   Widget _buildStepTwo(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -366,8 +364,6 @@ class _RegisterPageState extends State<RegisterPage> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 30),
-
-        // Industry
         DropdownButtonFormField<String>(
           value: _selectedIndustryId,
           decoration: _buildInputDecoration(
@@ -397,8 +393,6 @@ class _RegisterPageState extends State<RegisterPage> {
           },
         ),
         const SizedBox(height: 20),
-
-        // CareerBank
         if (_selectedIndustryId != null)
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -410,13 +404,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 return const LinearProgressIndicator();
               }
               final docs = snapshot.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return const Text('No careers available.');
-              }
+              if (docs.isEmpty) return const Text('No careers available.');
               return DropdownButtonFormField<String>(
                 value: _selectedCareerId,
                 decoration: _buildInputDecoration(
-                  'Select Career (CareerBank)',
+                  'Select Career',
                   Icons.cases_outlined,
                 ),
                 items: docs.map((doc) {
@@ -426,16 +418,16 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: Text(data['Title'] ?? 'Untitled'),
                   );
                 }).toList(),
-                onChanged: (v) => setState(() {
-                  _selectedCareerId = v;
-                  _selectedCareerPathId = null;
-                }),
+                onChanged: (v) {
+                  setState(() {
+                    _selectedCareerId = v;
+                    _selectedCareerPathId = null;
+                  });
+                },
               );
             },
           ),
         const SizedBox(height: 20),
-
-        // CareerPaths (sub-collection)
         if (_selectedCareerId != null)
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -449,13 +441,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 return const LinearProgressIndicator();
               }
               final docs = snapshot.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return const Text('No career paths available.');
-              }
+              if (docs.isEmpty) return const Text('No career paths available.');
               return DropdownButtonFormField<String>(
                 value: _selectedCareerPathId,
                 decoration: _buildInputDecoration(
-                  'Select Career Path (Level)',
+                  'Select Career Path',
                   Icons.timeline,
                 ),
                 items: docs.map((doc) {
@@ -470,26 +460,339 @@ class _RegisterPageState extends State<RegisterPage> {
             },
           ),
         const SizedBox(height: 40),
+        ElevatedButton(
+          onPressed: _saveProfessionalInfo,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 5,
+          ),
+          child: const Text(
+            'Continue',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-        _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ElevatedButton(
-                onPressed: _saveProfessionalInfo,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
+class OtpVerificationPage extends StatefulWidget {
+  final Map<String, dynamic> tempData;
+  const OtpVerificationPage({super.key, required this.tempData});
+
+  @override
+  State<OtpVerificationPage> createState() => _OtpVerificationPageState();
+}
+
+class _OtpVerificationPageState extends State<OtpVerificationPage> {
+  int _secondsRemaining = 60;
+  Timer? _timer;
+  late String _otp;
+  late DateTime _expiryTime;
+  String _enteredOtp = "";
+  bool _isVerifying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _otp = widget.tempData['otp'];
+    _expiryTime = DateTime.parse(widget.tempData['otpExpiry']);
+    _startCountdown();
+  }
+
+  void _startCountdown() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_secondsRemaining > 0) {
+        setState(() => _secondsRemaining--);
+      } else {
+        t.cancel();
+      }
+    });
+  }
+
+  Future<void> _verifyOtp() async {
+    setState(() => _isVerifying = true);
+    if (_enteredOtp == _otp && DateTime.now().isBefore(_expiryTime)) {
+      try {
+        final userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: widget.tempData['E-mail'],
+              password: widget.tempData['Password'],
+            );
+        final uid = userCredential.user!.uid;
+
+        final dataToSave = Map<String, dynamic>.from(widget.tempData);
+        dataToSave.remove('otp');
+        dataToSave.remove('otpExpiry');
+        dataToSave.remove('Password');
+        dataToSave['User_Id'] = uid;
+        dataToSave['isVerified'] = true;
+
+        await FirebaseFirestore.instance
+            .collection("Users")
+            .doc(uid)
+            .set(dataToSave);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Registration successful! Please log in."),
+              backgroundColor: Colors.green,
+            ),
+          );
+          await FirebaseAuth.instance.signOut();
+          Navigator.of(context).pop();
+        }
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Auth error: ${e.message}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Invalid or expired OTP"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    if (mounted) setState(() => _isVerifying = false);
+  }
+
+  Future<void> _resendOtp() async {
+    final otp = (Random().nextInt(900000) + 100000).toString();
+    final expiry = DateTime.now().add(const Duration(minutes: 1));
+    setState(() {
+      _otp = otp;
+      _expiryTime = expiry;
+      _secondsRemaining = 60;
+    });
+    await SmtpEmailService.sendOtpEmail(
+      toEmail: widget.tempData['E-mail'],
+      otp: otp,
+    );
+    _startCountdown();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _onOtpCompleted(String code) {
+    _enteredOtp = code;
+    _verifyOtp();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final minutes = (_secondsRemaining ~/ 60).toString();
+    final seconds = (_secondsRemaining % 60).toString().padLeft(2, "0");
+    final isExpired = _secondsRemaining == 0;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  "Verify Your Email",
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "We sent a 6-digit code to\n${widget.tempData['E-mail']}",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[700]),
+                ),
+                const SizedBox(height: 30),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    OtpCodeInput(
+                      length: 6,
+                      onCompleted: _onOtpCompleted,
+                      disabled: _isVerifying,
+                    ),
+                    if (_isVerifying)
+                      const Positioned.fill(
+                        child: Center(
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isExpired ? Colors.red[50] : Colors.green[50],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 5,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isExpired ? Icons.error_outline : Icons.access_time,
+                        color: isExpired ? Colors.red : Colors.green,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isExpired
+                            ? "OTP has expired"
+                            : "Your OTP is valid for $minutes:$seconds",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isExpired ? Colors.red : Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Text(
-                  'Save Info',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                const SizedBox(height: 24),
+                if (isExpired)
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: _resendOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 24,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text(
+                        "Resend OTP",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class OtpCodeInput extends StatefulWidget {
+  final int length;
+  final double boxSize;
+  final ValueChanged<String> onCompleted;
+  final bool disabled;
+
+  const OtpCodeInput({
+    super.key,
+    this.length = 6,
+    this.boxSize = 52,
+    required this.onCompleted,
+    this.disabled = false,
+  });
+
+  @override
+  State<OtpCodeInput> createState() => _OtpCodeInputState();
+}
+
+class _OtpCodeInputState extends State<OtpCodeInput> {
+  late final List<TextEditingController> _controllers;
+  late final List<FocusNode> _nodes;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(widget.length, (_) => TextEditingController());
+    _nodes = List.generate(widget.length, (_) => FocusNode());
+  }
+
+  void _onChanged(int index, String value) {
+    if (widget.disabled) return;
+
+    if (value.length == 1 && index < widget.length - 1) {
+      _nodes[index + 1].requestFocus();
+    }
+    if (value.isEmpty && index > 0) {
+      _nodes[index - 1].requestFocus();
+    }
+
+    final code = _controllers.map((c) => c.text).join();
+    if (code.length == widget.length) {
+      widget.onCompleted(code);
+      FocusScope.of(context).unfocus();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = Theme.of(context).primaryColor;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(widget.length, (i) {
+        return SizedBox(
+          width: widget.boxSize,
+          height: widget.boxSize,
+          child: TextField(
+            enabled: !widget.disabled,
+            controller: _controllers[i],
+            focusNode: _nodes[i],
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(1),
+            ],
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.grey.withOpacity(0.08),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: borderColor),
               ),
-      ],
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: borderColor, width: 2),
+              ),
+            ),
+            onChanged: (v) => _onChanged(i, v),
+          ),
+        );
+      }),
     );
   }
 }
