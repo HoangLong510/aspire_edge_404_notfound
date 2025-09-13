@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'career_add_page.dart';
 import 'career_detail_page.dart';
 
-// ⭐ NEW: dùng config enum Industry
 import 'package:aspire_edge_404_notfound/config/industries.dart';
 
 class CareerManagePage extends StatefulWidget {
@@ -646,8 +645,7 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                           MaterialPageRoute(
                                             builder: (_) =>
                                                 CareerDetailPage(
-                                                    career:
-                                                    career),
+                                                  careerId: career.id),
                                           ),
                                         );
                                       },
@@ -908,8 +906,7 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                           MaterialPageRoute(
                                             builder: (_) =>
                                                 CareerDetailPage(
-                                                    career:
-                                                    career),
+                                                    careerId: career.id),
                                           ),
                                         );
                                       },

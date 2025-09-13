@@ -44,7 +44,7 @@ class AppDrawer extends StatelessWidget {
     const _DrawerItem(
       title: 'Resources Hub',
       icon: Icons.collections_bookmark_rounded,
-      route: '/resource_hub',
+      route: '/resources_hub',
     ),
     const _DrawerItem(
       title: 'Career Quiz',
