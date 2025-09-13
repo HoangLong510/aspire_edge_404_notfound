@@ -69,7 +69,7 @@ class CareerPathPage extends StatelessWidget {
               ),
               child: Icon(Icons.timeline, color: primary, size: 26),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,20 +83,18 @@ class CareerPathPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Các mốc phát triển theo Level_Order · Kèm kỹ năng trọng tâm cho từng giai đoạn",
+                    "Milestones with key skills for each stage",
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
                         ?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant,
+                      color:
+                      Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
             if (isAdmin)
               ElevatedButton.icon(
                 onPressed: () {
@@ -112,8 +110,8 @@ class CareerPathPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: Colors.white,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
@@ -126,47 +124,50 @@ class CareerPathPage extends StatelessWidget {
 
     Widget _levelBadge(BuildContext context, String text) {
       final primary = Theme.of(context).primaryColor;
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  primary.withOpacity(0.28),
-                  primary.withOpacity(0.10),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(
-                color: primary.withOpacity(0.35),
-                width: 1.6,
-              ),
-            ),
-          ),
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: primary,
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 20,
+      return AnimatedScale(
+        duration: const Duration(milliseconds: 400),
+        scale: 1,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    primary.withOpacity(0.28),
+                    primary.withOpacity(0.10),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(
+                  color: primary.withOpacity(0.35),
+                  width: 1.6,
+                ),
               ),
             ),
-          ),
-        ],
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: primary,
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
     Widget _railConnector(BuildContext context) {
       final primary = Theme.of(context).primaryColor;
-      // Đường nối + mũi tên đi xuống đặt ở CỘT TRÁI
       return Column(
         children: [
           Container(
@@ -178,7 +179,7 @@ class CareerPathPage extends StatelessWidget {
             ),
           ),
           Icon(Icons.arrow_downward_rounded,
-              size: 24, color: primary.withOpacity(0.85)),
+              size: 22, color: primary.withOpacity(0.85)),
           Container(
             width: 2.6,
             height: 14,
@@ -227,7 +228,8 @@ class CareerPathPage extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.tips_and_updates_outlined, size: 18, color: primary),
+              Icon(Icons.tips_and_updates_outlined,
+                  size: 18, color: primary),
               const SizedBox(width: 8),
               Text(
                 "Key Skills",
@@ -244,9 +246,10 @@ class CareerPathPage extends StatelessWidget {
             runSpacing: 8,
             children: skills
                 .map(
-                  (s) => Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  (s) => AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -282,72 +285,69 @@ class CareerPathPage extends StatelessWidget {
         path.data() is Map ? (path.data() as Map)['Skills'] : null,
       );
 
-      // Card nội dung xếp THEO CỘT (vertical)
-      final content = Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: primary.withOpacity(0.20), width: 1.2),
-          boxShadow: [
-            BoxShadow(
-              color: primary.withOpacity(0.07),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tiêu đề riêng một dòng
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      name.isEmpty ? "Untitled Level" : name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  if (isAdmin)
-                    IconButton(
-                      tooltip: "Delete",
-                      icon: const Icon(Icons.delete_outline,
-                          color: Colors.redAccent),
-                      onPressed: () =>
-                          _deletePath(careerId, path.id), // giữ nguyên logic
-                    ),
-                ],
+      final content = AnimatedOpacity(
+        opacity: 1,
+        duration: const Duration(milliseconds: 500),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: primary.withOpacity(0.20), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: primary.withOpacity(0.07),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-
-              // Lương đặt THÀNH DÒNG RIÊNG (tránh dồn ngang)
-              const SizedBox(height: 8),
-              _salaryChip(context, salary),
-
-              // Mô tả
-              const SizedBox(height: 10),
-              Text(
-                desc.isEmpty ? "—" : desc,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-
-              // Skills
-              _skillsChips(context, skills),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name.isEmpty ? "Untitled Level" : name,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    if (isAdmin)
+                      IconButton(
+                        tooltip: "Delete",
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.redAccent),
+                        onPressed: () => _deletePath(careerId, path.id),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+                _salaryChip(context, salary),
+
+                const SizedBox(height: 10),
+                Text(
+                  desc.isEmpty ? "—" : desc,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
+                _skillsChips(context, skills),
+              ],
+            ),
           ),
         ),
       );
 
-      // Hàng tổng thể: Cột trái là RAIL (badge + arrow), phải là card
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // CỘT TRÁI: LEVEL & NỐI XUỐNG
           Column(
             children: [
               const SizedBox(height: 6),
@@ -359,7 +359,6 @@ class CareerPathPage extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 16),
-          // NỘI DUNG
           Expanded(child: content),
         ],
       );
@@ -371,39 +370,40 @@ class CareerPathPage extends StatelessWidget {
             .collection("CareerBank")
             .doc(careerId)
             .collection("Docs")
-            .limit(1) // chỉ cần check có doc hay không
+            .limit(1)
             .snapshots(),
         builder: (ctx, snapshot) {
           if (!snapshot.hasData) return const SizedBox.shrink();
           final hasDocs = snapshot.data!.docs.isNotEmpty;
-
           if (!hasDocs) return const SizedBox.shrink();
 
-          return ElevatedButton.icon(
-            onPressed: () {
-              // 👉 Điều hướng sang trang CareerDocsPage hiển thị danh sách
-              Navigator.push(
-                ctx,
-                MaterialPageRoute(
-                  builder: (_) => CareerDocsPage(careerId: careerId),
-                ),
-              );
-            },
-            icon: const Icon(Icons.file_download),
-            label: const Text("Tải tài liệu"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
+          return SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  ctx,
+                  MaterialPageRoute(
+                    builder: (_) => CareerDocsPage(careerId: careerId),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.file_download),
+              label: const Text("Download Resources"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+                padding:
+                const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 2,
+              ),
             ),
           );
         },
       );
     }
-
-
 
     return Scaffold(
       appBar: AppBar(),
@@ -421,7 +421,7 @@ class CareerPathPage extends StatelessWidget {
               .doc(careerId)
               .collection("CareerPaths")
               .orderBy("Level_Order")
-              .snapshots(), // GIỮ NGUYÊN LOGIC
+              .snapshots(),
           builder: (ctx, snapshot) {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
@@ -436,9 +436,7 @@ class CareerPathPage extends StatelessWidget {
                   child: Column(
                     children: [
                       _sectionHeader(),
-                      const SizedBox(height: 16),
-                      _docsButton(careerId, primary),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
                       if (paths.isEmpty)
                         Padding(
@@ -449,14 +447,14 @@ class CareerPathPage extends StatelessWidget {
                               Icon(Icons.route,
                                   size: 56, color: primary.withOpacity(0.6)),
                               const SizedBox(height: 12),
-                              Text("Chưa có lộ trình nào",
+                              Text("No roadmap yet",
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: 4),
                               Text(
-                                "Hãy thêm các level để hoàn thiện roadmap nghề nghiệp.",
+                                "Add levels to build this career roadmap.",
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context)
                                     .textTheme
@@ -471,14 +469,13 @@ class CareerPathPage extends StatelessWidget {
                           ),
                         )
                       else
-                      // DỌC XUỐNG, không separator ngang ở phần lương
                         ListView.builder(
                           physics: const NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           itemCount: paths.length,
                           itemBuilder: (ctx, i) => Padding(
                             padding: EdgeInsets.only(
-                              bottom: i == paths.length - 1 ? 0 : 16,
+                              bottom: i == paths.length - 1 ? 20 : 20,
                             ),
                             child: _pathCard(
                               context: context,
@@ -487,6 +484,9 @@ class CareerPathPage extends StatelessWidget {
                             ),
                           ),
                         ),
+
+                      const SizedBox(height: 24),
+                      _docsButton(careerId, primary),
                     ],
                   ),
                 ),

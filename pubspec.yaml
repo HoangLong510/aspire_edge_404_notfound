@@ -31,10 +31,12 @@ dependencies:
   url_launcher: ^6.2.5
   mailer: ^6.0.1
   permission_handler: ^11.3.1
-  flutter_downloader: ^1.11.7
+  dio: ^5.7.0
   path_provider: ^2.1.2
   open_file: ^3.3.2
   iconsax: ^0.0.8
+  video_player: ^2.9.2
+  chewie: ^1.8.1
 
   # iOS-style icons
   cupertino_icons: ^1.0.8

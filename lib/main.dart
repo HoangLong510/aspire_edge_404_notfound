@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:isolate';
-import 'dart:ui';
 
 import 'package:aspire_edge_404_notfound/layouts/main_layout.dart';
 import 'package:aspire_edge_404_notfound/pages/about_us_page.dart';
@@ -35,23 +33,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 
 const portName = "downloader_send_port";
 
-@pragma('vm:entry-point')
-void downloadCallback(String id, int status, int progress) {
-  final SendPort? send = IsolateNameServer.lookupPortByName(portName);
-  send?.send([id, status, progress]);
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await LocalNoti.init();
-  await FlutterDownloader.initialize(debug: true);
-  // đăng ký callback
-  FlutterDownloader.registerCallback(downloadCallback);
 
   runApp(const MyApp());
 }

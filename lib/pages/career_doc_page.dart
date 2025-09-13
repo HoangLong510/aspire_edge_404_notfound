@@ -1,14 +1,13 @@
 import 'dart:io';
-import 'dart:isolate';
-import 'dart:ui';
+import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:open_file/open_file.dart';
-
-import '../main.dart'; // lấy portName
+import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 class CareerDocsPage extends StatefulWidget {
   final String careerId;
@@ -19,46 +18,8 @@ class CareerDocsPage extends StatefulWidget {
 }
 
 class _CareerDocsPageState extends State<CareerDocsPage> {
-  ReceivePort _port = ReceivePort();
-  String? _lastFilePath;
-
-  /// Map lưu tiến trình: taskId -> progress (%)
-  Map<String, int> _progressMap = {};
-  /// Map taskId -> filePath (để mở đúng file)
-  Map<String, String> _taskFileMap = {};
-
-  @override
-  void initState() {
-    super.initState();
-
-    IsolateNameServer.removePortNameMapping(portName);
-    IsolateNameServer.registerPortWithName(_port.sendPort, portName);
-
-    _port.listen((dynamic data) async {
-      final String taskId = data[0];
-      final int rawStatus = data[1];
-      final int progress = data[2];
-
-      final taskStatus = DownloadTaskStatus.fromInt(rawStatus);
-
-      setState(() {
-        _progressMap[taskId] = progress;   // update %
-      });
-
-      if (taskStatus == DownloadTaskStatus.complete) {
-        final filePath = _taskFileMap[taskId];
-        if (filePath != null) {
-          await OpenFile.open(filePath);
-        }
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    IsolateNameServer.removePortNameMapping(portName);
-    super.dispose();
-  }
+  final Map<String, int> _progressMap = {}; // filename -> %
+  final Dio _dio = Dio();
 
   Future<void> _checkPermission() async {
     if (Platform.isAndroid) {
@@ -88,23 +49,42 @@ class _CareerDocsPageState extends State<CareerDocsPage> {
 
     final filePath = "${dir.path}/$filename";
 
-    final taskId = await FlutterDownloader.enqueue(
-      url: url,
-      savedDir: dir.path,
-      fileName: filename,
-      showNotification: true,
-      openFileFromNotification: true,
-    );
+    try {
+      await _dio.download(
+        url,
+        filePath,
+        onReceiveProgress: (count, total) {
+          if (total > 0) {
+            final progress = (count / total * 100).toInt();
+            setState(() {
+              _progressMap[filename] = progress;
+            });
+          }
+        },
+      );
 
-    if (taskId != null) {
-      _taskFileMap[taskId] = filePath;
-      setState(() {
-        _progressMap[taskId] = 0;
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Downloaded $filename")),
+      );
+
+      await OpenFile.open(filePath); // mở file sau khi tải xong
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Download failed: $e")),
+      );
     }
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Đang tải $filename...")),
+  void _openVideo(BuildContext context, String url, String title, String desc) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VideoPlayerPage(
+          videoUrl: url,
+          title: title,
+          description: desc,
+        ),
+      ),
     );
   }
 
@@ -113,7 +93,11 @@ class _CareerDocsPageState extends State<CareerDocsPage> {
     final primary = Theme.of(context).primaryColor;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Tài liệu nghề")),
+      appBar: AppBar(
+        title: const Text("Career Resources"),
+        centerTitle: true,
+        elevation: 2,
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection("CareerBank")
@@ -128,69 +112,233 @@ class _CareerDocsPageState extends State<CareerDocsPage> {
 
           final docs = snapshot.data!.docs;
           if (docs.isEmpty) {
-            return const Center(child: Text("Chưa có tài liệu nào"));
+            return const Center(child: Text("No resources available"));
           }
-          return ListView.separated(
-            itemCount: docs.length,
-            separatorBuilder: (_, __) => const Divider(),
-            itemBuilder: (ctx, i) {
-              final data = docs[i].data() as Map<String, dynamic>;
 
-              final title = (data['title'] ?? '').toString();
-              final desc = (data['description'] ?? '').toString();
-              final type = (data['type'] ?? 'pdf').toString();
-              final url = (data['url'] ?? '').toString();
+          final pdfDocs = docs.where((d) => d['type'] == 'pdf').toList();
+          final videoDocs = docs.where((d) => d['type'] == 'mp4').toList();
 
-              final ext = type == 'video' ? 'mp4' : 'pdf';
-              final filename = "$title.$ext";
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (pdfDocs.isNotEmpty) ...[
+                Text("📄 PDF Documents",
+                    style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                ...pdfDocs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final title = (data['title'] ?? '').toString();
+                  final desc = (data['description'] ?? '').toString();
+                  final url = (data['url'] ?? '').toString();
+                  final filename = "$title.pdf";
 
-              // tìm taskId nào đang tải file này
-              final taskId = _taskFileMap.keys.firstWhere(
-                    (id) => _taskFileMap[id]?.endsWith(filename) ?? false,
-                orElse: () => '',
-              );
+                  final progress = _progressMap[filename];
 
-              final progress = taskId.isNotEmpty ? _progressMap[taskId] ?? 0 : null;
-
-              return Column(
-                children: [
-                  ListTile(
-                    leading: Icon(
-                      type == 'video' ? Icons.video_library : Icons.picture_as_pdf,
-                      color: primary,
+                  return Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: Icon(Icons.picture_as_pdf,
+                              color: Colors.redAccent),
+                          title: Text(title,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                          subtitle: Text(desc),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.download),
+                            color: primary,
+                            onPressed: () {
+                              if (url.isNotEmpty) {
+                                _downloadFile(context, url, filename);
+                              }
+                            },
+                          ),
+                        ),
+                        if (progress != null && progress < 100)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              children: [
+                                LinearProgressIndicator(
+                                  value: progress / 100,
+                                  color: primary,
+                                  backgroundColor: Colors.grey.shade300,
+                                ),
+                                const SizedBox(height: 4),
+                                Text("Downloading: $progress%"),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
-                    title: Text(title),
-                    subtitle: Text(desc),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.download),
-                      onPressed: () {
-                        if (url.isNotEmpty) {
-                          _downloadFile(context, url, filename);
-                        }
-                      },
+                  );
+                }),
+              ],
+              if (videoDocs.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Text("🎬 Videos",
+                    style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                ...videoDocs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final title = (data['title'] ?? '').toString();
+                  final desc = (data['description'] ?? '').toString();
+                  final url = (data['url'] ?? '').toString();
+
+                  return Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    child: ListTile(
+                      leading: Icon(Icons.video_library, color: primary),
+                      title: Text(title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      subtitle: Text(desc),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.play_arrow),
+                        color: primary,
+                        onPressed: () => _openVideo(context, url, title, desc),
+                      ),
                     ),
-                  ),
-                  if (progress != null && progress < 100)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  );
+                }),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class VideoPlayerPage extends StatefulWidget {
+  final String videoUrl;
+  final String title;
+  final String? description;
+
+  const VideoPlayerPage({
+    super.key,
+    required this.videoUrl,
+    required this.title,
+    this.description,
+  });
+
+  @override
+  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+}
+
+class _VideoPlayerPageState extends State<VideoPlayerPage> {
+  late VideoPlayerController _videoController;
+  ChewieController? _chewieController;
+
+  @override
+  void initState() {
+    super.initState();
+    _videoController = VideoPlayerController.network(widget.videoUrl)
+      ..initialize().then((_) {
+        _chewieController = ChewieController(
+          videoPlayerController: _videoController,
+          autoPlay: true,
+          looping: false,
+          allowFullScreen: true,
+          allowMuting: true,
+          showControls: true,
+        );
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _videoController.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openInYoutube() async {
+    final uri = Uri.parse(widget.videoUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not open video in external app")),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: _chewieController != null &&
+                  _chewieController!.videoPlayerController.value.isInitialized
+                  ? Chewie(controller: _chewieController!)
+                  : const CircularProgressIndicator(),
+            ),
+            // overlay title + desc + youtube button
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title + desc
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          LinearProgressIndicator(
-                            value: progress / 100,
-                            backgroundColor: Colors.grey.shade300,
-                            color: primary,
+                          Text(
+                            widget.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
-                          Text("Đang tải: $progress%"),
+                          if (widget.description != null &&
+                              widget.description!.isNotEmpty)
+                            Text(
+                              widget.description!,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                         ],
                       ),
                     ),
-                ],
-              );
-            },
-          );
-        },
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new, color: Colors.white),
+                      onPressed: _openInYoutube,
+                      tooltip: "Open in YouTube / Browser",
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
