@@ -7,11 +7,13 @@ import 'career_path_add_page.dart';
 class CareerPathPage extends StatelessWidget {
   final String careerId;
   final bool isAdmin;
+  final String? currentPathId;
 
   const CareerPathPage({
     super.key,
     required this.careerId,
     this.isAdmin = false,
+    this.currentPathId,
   });
 
   Future<void> _deletePath(String careerId, String id) async {
@@ -122,7 +124,7 @@ class CareerPathPage extends StatelessWidget {
       );
     }
 
-    Widget _levelBadge(BuildContext context, String text) {
+    Widget _levelBadge(BuildContext context, String text, {bool isCurrent = false}) {
       final primary = Theme.of(context).primaryColor;
       return AnimatedScale(
         duration: const Duration(milliseconds: 400),
@@ -136,22 +138,21 @@ class CareerPathPage extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [
-                    primary.withOpacity(0.28),
-                    primary.withOpacity(0.10),
-                  ],
+                  colors: isCurrent
+                      ? [primary.withOpacity(0.6), primary.withOpacity(0.3)]
+                      : [primary.withOpacity(0.28), primary.withOpacity(0.10)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 border: Border.all(
-                  color: primary.withOpacity(0.35),
-                  width: 1.6,
+                  color: isCurrent ? primary : primary.withOpacity(0.35),
+                  width: isCurrent ? 2.5 : 1.6,
                 ),
               ),
             ),
             CircleAvatar(
               radius: 28,
-              backgroundColor: primary,
+              backgroundColor: isCurrent ? Colors.amber : primary,
               child: Text(
                 text,
                 style: const TextStyle(
@@ -165,6 +166,7 @@ class CareerPathPage extends StatelessWidget {
         ),
       );
     }
+
 
     Widget _railConnector(BuildContext context) {
       final primary = Theme.of(context).primaryColor;
@@ -285,6 +287,8 @@ class CareerPathPage extends StatelessWidget {
         path.data() is Map ? (path.data() as Map)['Skills'] : null,
       );
 
+      final isCurrent = (currentPathId == path.id);
+
       final content = AnimatedOpacity(
         opacity: 1,
         duration: const Duration(milliseconds: 500),
@@ -292,7 +296,10 @@ class CareerPathPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: primary.withOpacity(0.20), width: 1.2),
+            border: Border.all(
+              color: isCurrent ? primary : primary.withOpacity(0.20),
+              width: isCurrent ? 2.2 : 1.2,
+            ),
             boxShadow: [
               BoxShadow(
                 color: primary.withOpacity(0.07),
@@ -313,10 +320,12 @@ class CareerPathPage extends StatelessWidget {
                     Expanded(
                       child: Text(
                         name.isEmpty ? "Untitled Level" : name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: isCurrent
+                              ? FontWeight.w900
+                              : FontWeight.w700,
+                          color: isCurrent ? primary : null,
+                        ),
                       ),
                     ),
                     if (isAdmin)
@@ -328,6 +337,17 @@ class CareerPathPage extends StatelessWidget {
                       ),
                   ],
                 ),
+
+                if (isCurrent) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    "👉 Bạn đang ở đây",
+                    style: TextStyle(
+                      color: primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 8),
                 _salaryChip(context, salary),
@@ -344,14 +364,13 @@ class CareerPathPage extends StatelessWidget {
           ),
         ),
       );
-
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Column(
             children: [
               const SizedBox(height: 6),
-              _levelBadge(context, level),
+              _levelBadge(context, level, isCurrent: isCurrent),
               if (!isLast) ...[
                 const SizedBox(height: 6),
                 _railConnector(context),

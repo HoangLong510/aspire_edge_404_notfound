@@ -8,6 +8,7 @@ class CareerDetailPage extends StatefulWidget {
   final String careerId;
   const CareerDetailPage({super.key, required this.careerId});
 
+
   @override
   State<CareerDetailPage> createState() => _CareerDetailPageState();
 }
@@ -17,6 +18,7 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
   final _firestore = FirebaseFirestore.instance;
   String? _userTier;
   DocumentSnapshot? _careerData;
+  String? _userCareerPathId;
 
   @override
   void initState() {
@@ -31,6 +33,7 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
       final doc = await _firestore.collection("Users").doc(user.uid).get();
       setState(() {
         _userTier = doc["Tier"];
+        _userCareerPathId = doc["CareerPathId"];
       });
     }
   }
@@ -373,6 +376,7 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
                                     builder: (_) => CareerPathPage(
                                       careerId: data.id,
                                       isAdmin: _userTier == "admin",
+                                        currentPathId: _userCareerPathId,
                                     ),
                                   ),
                                 );
