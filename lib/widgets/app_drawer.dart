@@ -17,7 +17,7 @@ class AppDrawer extends StatelessWidget {
   final String fullName;
   final String email;
   final String avatarUrl;
-  final bool isAdmin; // hiển thị nhóm Admin nếu true
+  final bool isAdmin;
 
   const AppDrawer({
     super.key,
@@ -28,8 +28,7 @@ class AppDrawer extends StatelessWidget {
     this.isAdmin = false,
   });
 
-  // Menu chung
-  static final List<_DrawerItem> _drawerItems = [
+  static final List<_DrawerItem> _mainItems = [
     const _DrawerItem(title: 'Home', icon: Icons.home_rounded, route: '/'),
     const _DrawerItem(
       title: 'Career Bank',
@@ -52,28 +51,35 @@ class AppDrawer extends StatelessWidget {
       route: '/career_quiz',
     ),
     const _DrawerItem(
-      title: 'Testimonials',
-      icon: Icons.star_rate_rounded,
-      route: '/testimonials',
+      title: 'My Stories',
+      icon: Icons.menu_book_rounded,
+      route: '/stories', 
     ),
     const _DrawerItem(
       title: 'About Us',
       icon: Icons.info_rounded,
       route: '/about_us',
     ),
+  ];
+
+  static final List<_DrawerItem> _supportItems = [
     const _DrawerItem(
-      title: 'Contact Us',
-      icon: Icons.feedback_rounded,
-      route: '/contact_us',
+      title: 'Notifications',
+      icon: Icons.notifications_rounded,
+      route: '/notifications',
     ),
     const _DrawerItem(
       title: 'Contact Us',
+      icon: Icons.contact_mail_rounded,
+      route: '/contact_us',
+    ),
+    const _DrawerItem(
+      title: 'Feedback',
       icon: Icons.feedback_rounded,
       route: '/feedback',
     ),
   ];
 
-  // Menu riêng cho Admin
   static final List<_DrawerItem> _adminItems = [
     const _DrawerItem(
       title: 'Admin Panel',
@@ -85,13 +91,37 @@ class AppDrawer extends StatelessWidget {
       icon: Icons.storage_rounded,
       route: '/seed_achievements',
     ),
+    const _DrawerItem(
+      title: 'Admin Contacts',
+      icon: Icons.mail_lock_rounded,
+      route: '/admin_contacts',
+    ),
+    const _DrawerItem(
+      title: '📜 List Stories',
+      icon: Icons.library_books_rounded,
+      route: '/stories_admin', 
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[
       _buildDrawerHeader(context),
-      ..._drawerItems.map((item) => _buildDrawerTile(context, item)),
+
+      ..._mainItems.map((item) => _buildDrawerTile(context, item)),
+
+      const Divider(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
+        child: Text(
+          'Support',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
+      ),
+      ..._supportItems.map((item) => _buildDrawerTile(context, item)),
     ];
 
     if (isAdmin) {
