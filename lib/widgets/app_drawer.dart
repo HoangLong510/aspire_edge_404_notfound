@@ -51,7 +51,7 @@ class AppDrawer extends StatelessWidget {
       route: '/career_quiz',
     ),
     const _DrawerItem(
-      title: 'My Stories',
+      title: 'Community Stories',
       icon: Icons.menu_book_rounded,
       route: '/stories', 
     ),
