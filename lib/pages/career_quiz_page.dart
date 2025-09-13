@@ -1,10 +1,8 @@
-import 'dart:convert';
-
+import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
+import 'career_path_page.dart';
 
 class CareerQuizPage extends StatefulWidget {
   const CareerQuizPage({super.key});
@@ -13,57 +11,72 @@ class CareerQuizPage extends StatefulWidget {
   State<CareerQuizPage> createState() => _CareerQuizPageState();
 }
 
-class _CareerQuizPageState extends State<CareerQuizPage>
-    with SingleTickerProviderStateMixin {
-  String? _userTier;
-  int? _questionCount;
+class _CareerQuizPageState extends State<CareerQuizPage> {
   bool _loading = true;
   String? _error;
-
-  late final AnimationController _fadeIn;
+  List<_MatchItem> _matches = [];
+  int? _questionCount;
 
   @override
   void initState() {
     super.initState();
-    _fadeIn = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 450),
-    );
-    _fetchUserTier();
+    _load();
   }
 
-  Future<void> _fetchUserTier() async {
+  Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
+      _matches = [];
     });
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
-        _userTier = 'guest';
-        _questionCount = 0;
-        _loading = false;
-        if (mounted) setState(() {});
-        _fadeIn.forward();
+      if (uid == null) throw Exception("No signed-in user.");
+      final userSnap =
+          await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+      if (!userSnap.exists) throw Exception("User not found.");
+      final data = userSnap.data() ?? {};
+      final matchesRaw = (data['CareerMatches'] as List?) ?? [];
+
+      if (matchesRaw.isEmpty) {
+        await _fetchQuestionCountForTier(data['Tier'] ?? 'user');
+        setState(() {
+          _matches = [];
+          _loading = false;
+        });
         return;
       }
 
-      final snapshot = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
-      final tier = (snapshot.data()?['Tier'] ?? 'user').toString();
-      _userTier = tier;
+      final matches = matchesRaw.map<_MatchItem>((m) {
+        final mm = Map<String, dynamic>.from(m as Map);
+        return _MatchItem(
+          careerId: '${mm['careerId'] ?? ''}',
+          fitPercent: _clampInt(mm['fitPercent']),
+          assessment: '${mm['assessment'] ?? ''}',
+        );
+      }).where((e) => e.careerId.isNotEmpty).toList();
 
-      await _fetchQuestionCountForTier(tier);
+      final meta =
+          await _fetchCareerMeta(matches.map((e) => e.careerId).toList());
+      for (final m in matches) {
+        final info = meta[m.careerId];
+        m.title = info?.title ?? m.careerId;
+        m.description = info?.description ?? '';
+        m.industry = info?.industry ?? '';
+        m.skills = info?.skills ?? const [];
+      }
 
-      _loading = false;
-      if (mounted) setState(() {});
-      _fadeIn.forward();
+      matches.sort((a, b) => b.fitPercent.compareTo(a.fitPercent));
+
+      setState(() {
+        _matches = matches;
+        _loading = false;
+      });
     } catch (e) {
-      _userTier = 'user';
-      _questionCount = null;
-      _loading = false;
-      _error = 'Failed to load your role. Please try again.';
-      if (mounted) setState(() {});
-      _fadeIn.forward();
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
@@ -72,7 +85,6 @@ class _CareerQuizPageState extends State<CareerQuizPage>
       final query = FirebaseFirestore.instance
           .collection('Questions')
           .where('Tier', isEqualTo: tier);
-
       try {
         final agg = await query.count().get();
         _questionCount = agg.count;
@@ -85,224 +97,425 @@ class _CareerQuizPageState extends State<CareerQuizPage>
     }
   }
 
-  @override
-  void dispose() {
-    _fadeIn.dispose();
-    super.dispose();
+  static int _clampInt(dynamic v) {
+    try {
+      final n = (v is num) ? v : num.parse('$v');
+      return n.round().clamp(0, 100);
+    } catch (_) {
+      return 0;
+    }
   }
 
-  Widget _buildBackground(BuildContext context) {
+  Future<Map<String, _CareerInfo>> _fetchCareerMeta(List<String> ids) async {
+    final Map<String, _CareerInfo> result = {};
+    const chunkSize = 10;
+    for (var i = 0; i < ids.length; i += chunkSize) {
+      final chunk = ids.sublist(i, min(i + chunkSize, ids.length));
+      final qs = await FirebaseFirestore.instance
+          .collection('CareerBank')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final d in qs.docs) {
+        final m = d.data();
+        final title = (m['Name'] ?? m['Title'] ?? '').toString().trim();
+        final description = (m['Description'] ?? '').toString().trim();
+        final industry = (m['Industry'] ?? '').toString().trim();
+        final skillsAny = (m['Skills']);
+        final skills = (skillsAny is List)
+            ? skillsAny
+                .map((e) => '$e'.trim())
+                .where((s) => s.isNotEmpty)
+                .toList()
+            : <String>[];
+        result[d.id] = _CareerInfo(
+          title: title.isEmpty ? d.id : title,
+          description: description,
+          industry: industry,
+          skills: skills,
+        );
+      }
+    }
+    return result;
+  }
+
+  /// Header giống AnswerQuizPage nhưng không có nút quay lại
+  Widget _header(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.primaryColor;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [primary.withOpacity(.12), primary.withOpacity(.04)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primary.withOpacity(.12)),
+      ),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _matches.isEmpty ? "Career Orientation Quiz" : "Matched Careers",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: .2,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
     final primary = Theme.of(context).primaryColor;
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [primary.withOpacity(0.12), Colors.white],
+
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 880),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _header(context),
+                  _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _error != null
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(_error!, textAlign: TextAlign.center),
+                                  const SizedBox(height: 12),
+                                  FilledButton(
+                                      onPressed: _load,
+                                      child: const Text("Retry")),
+                                ],
+                              ),
+                            )
+                          : _matches.isEmpty
+                              ? _buildQuizIntro(context)
+                              : RefreshIndicator(
+                                  onRefresh: _load,
+                                  child: ListView.separated(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 16, 16, 80),
+                                    itemCount: _matches.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 14),
+                                    itemBuilder: (context, index) {
+                                      final item = _matches[index];
+                                      final isFirst = index == 0;
+                                      final isLast =
+                                          index == _matches.length - 1;
+                                      return _TimelineRow(
+                                        isFirst: isFirst,
+                                        isLast: isLast,
+                                        lineColor: primary.withOpacity(.35),
+                                        dotColor: primary,
+                                        child: _CareerCard(
+                                          item: item,
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => CareerPathPage(
+                                                  careerId: item.careerId,
+                                                  isAdmin: false,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          surface: color.surface,
+                                          onSurface: color.onSurface,
+                                          primary: primary,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                ],
               ),
             ),
           ),
         ),
-        Positioned(top: -60, left: -40, child: _Blob(color: primary.withOpacity(0.15), size: 180)),
-        Positioned(bottom: -50, right: -30, child: _Blob(color: primary.withOpacity(0.10), size: 220)),
-      ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.of(context).pushNamed('/answer_quiz');
+          // Refresh sau khi làm quiz xong
+          _load();
+        },
+        label: Text(_matches.isEmpty ? "Start Quiz" : "Retake Quiz"),
+        icon: const Icon(Icons.quiz_outlined),
+      ),
     );
   }
 
-  Widget _buildCenterCard(BuildContext context) {
+  Widget _buildQuizIntro(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final qCount = _questionCount == null ? "..." : "$_questionCount";
     final primary = Theme.of(context).primaryColor;
 
-    if (_loading) {
-      return _SkeletonCard();
-    }
-
-    if (_error != null) {
-      return _GlassCard(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red[400], size: 40),
-            const SizedBox(height: 12),
-            Text(
-              'Something went wrong',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _error!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _fetchUserTier,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final questionCountText = _questionCount == null ? '...' : '$_questionCount';
-    return FadeTransition(
-      opacity: _fadeIn,
-      child: _GlassCard(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: primary.withOpacity(0.10),
+              backgroundColor: primary.withOpacity(0.1),
               child: Icon(Icons.quiz_outlined, color: primary, size: 30),
             ),
             const SizedBox(height: 12),
-            Text(
-              'Career Orientation Quiz',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              textAlign: TextAlign.center,
-            ),
+            Text("Career Orientation Quiz",
+                style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text(
-              'Discover strengths and suitable career clusters in ~10 minutes.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              "Discover strengths and suitable career clusters in ~10 minutes.",
               textAlign: TextAlign.center,
+              style: t.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 18),
             Wrap(
+              alignment: WrapAlignment.center,
               spacing: 10,
               runSpacing: 10,
-              alignment: WrapAlignment.center,
               children: [
-                _ChipInfo(icon: Icons.timer_outlined, label: '$questionCountText questions'),
-                const _ChipInfo(icon: Icons.check_circle_outline, label: 'Instant result'),
-                const _ChipInfo(icon: Icons.security_outlined, label: 'Private & secure'),
+                _ChipInfo(
+                    icon: Icons.timer_outlined, label: "$qCount questions"),
+                const _ChipInfo(
+                    icon: Icons.check_circle_outline, label: "Instant result"),
+                const _ChipInfo(
+                    icon: Icons.security_outlined, label: "Private & secure"),
               ],
             ),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pushNamed('/answer_quiz'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 3,
-                ),
-                child: const Text('Start Quiz', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(height: 10),
-            // ĐÃ BỎ dòng thông báo về gear cho admin
           ],
         ),
       ),
     );
   }
+}
+
+/// Timeline + card + donut + details (reused from CareerMatchesPage)
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({
+    required this.child,
+    required this.isFirst,
+    required this.isLast,
+    required this.lineColor,
+    required this.dotColor,
+  });
+
+  final Widget child;
+  final bool isFirst;
+  final bool isLast;
+  final Color lineColor;
+  final Color dotColor;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        _buildBackground(context),
-        Align(
-          alignment: Alignment.center,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: _buildCenterCard(context),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 28,
+            child: Column(
+              children: [
+                if (!isFirst)
+                  Expanded(
+                      child:
+                          Center(child: Container(width: 2, color: lineColor))),
+                Container(
+                  height: 12,
+                  width: 12,
+                  decoration: BoxDecoration(
+                    color: dotColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: dotColor.withOpacity(.35), blurRadius: 8)
+                    ],
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                      child:
+                          Center(child: Container(width: 2, color: lineColor))),
+              ],
             ),
           ),
-        ),
-        // ĐÃ BỎ nút gear admin (Quiz Management)
-      ],
-    );
-  }
-}
-
-class _GlassCard extends StatelessWidget {
-  const _GlassCard({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = Theme.of(context).primaryColor;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [Colors.white.withOpacity(0.85), Colors.white.withOpacity(0.72)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: primary.withOpacity(0.15)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 18, offset: const Offset(0, 10)),
+          Expanded(child: child),
         ],
       ),
-      child: child,
     );
   }
 }
 
-class _SkeletonCard extends StatelessWidget {
+class _CareerCard extends StatelessWidget {
+  const _CareerCard({
+    required this.item,
+    required this.onTap,
+    required this.surface,
+    required this.onSurface,
+    required this.primary,
+  });
+
+  final _MatchItem item;
+  final VoidCallback onTap;
+  final Color surface;
+  final Color onSurface;
+  final Color primary;
+
   @override
   Widget build(BuildContext context) {
-    return _GlassCard(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          _ShimmerCircle(size: 56),
-          SizedBox(height: 12),
-          _ShimmerBox(height: 20, width: 220),
-          SizedBox(height: 8),
-          _ShimmerBox(width: 260, height: 16),
-          SizedBox(height: 18),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 10,
-            runSpacing: 10,
+    final t = Theme.of(context).textTheme;
+
+    return Material(
+      color: surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: primary.withOpacity(.12), width: 1),
+            gradient: LinearGradient(
+              colors: [Colors.white, primary.withOpacity(.015)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ShimmerBox(height: 28, width: 120),
-              _ShimmerBox(height: 28, width: 140),
-              _ShimmerBox(height: 28, width: 120),
+              _AnimatedDonutPercent(percent: item.fitPercent),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.title ?? item.careerId,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).primaryColor)),
+                    const SizedBox(height: 8),
+                    if (item.assessment.trim().isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(.12),
+                          border:
+                              Border.all(color: Colors.green.withOpacity(.12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(.18),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.auto_awesome, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text('A.I.',
+                                      style: t.labelSmall?.copyWith(
+                                          fontWeight: FontWeight.w800)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(item.assessment,
+                                  style: t.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if ((item.industry ?? '').isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: _Lined(
+                            icon: Icons.apartment,
+                            label: 'Industry',
+                            value: item.industry!),
+                      ),
+                    if ((item.description ?? '').isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: _Multiline(
+                          icon: Icons.description_outlined,
+                          label: 'Description',
+                          value: item.description!,
+                        ),
+                      ),
+                    if ((item.skills ?? []).isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: _SkillsChips(skills: item.skills!),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
-          SizedBox(height: 22),
-          _ShimmerBox(height: 52, width: double.infinity),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _ShimmerBox extends StatefulWidget {
-  const _ShimmerBox({required this.height, required this.width});
-  final double height;
-  final double width;
+class _AnimatedDonutPercent extends StatefulWidget {
+  const _AnimatedDonutPercent({required this.percent});
+  final int percent;
 
   @override
-  State<_ShimmerBox> createState() => _ShimmerBoxState();
+  State<_AnimatedDonutPercent> createState() => _AnimatedDonutPercentState();
 }
 
-class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderStateMixin {
+class _AnimatedDonutPercentState extends State<_AnimatedDonutPercent>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c;
+  late final Animation<double> _tween;
 
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900));
+    _tween = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+    _c.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedDonutPercent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.percent != widget.percent) _c.forward(from: 0);
   }
 
   @override
@@ -313,41 +526,164 @@ class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    final base = Colors.grey.shade300;
-    final highlight = Colors.grey.shade100;
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (_, __) {
-        return Container(
-          height: widget.height,
-          width: widget.width,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment(-1.0 + _c.value * 2, 0),
-              end: const Alignment(1.0, 0),
-              colors: [base, highlight, base],
-              stops: const [0.1, 0.5, 0.9],
+    return SizedBox(
+      width: 68,
+      height: 68,
+      child: AnimatedBuilder(
+        animation: _tween,
+        builder: (_, __) {
+          final target = widget.percent.clamp(0, 100).toDouble();
+          final animatedPercent = target * _tween.value;
+          return CustomPaint(
+            painter: _DonutPainter(
+              greenPercent: animatedPercent,
+              green: Colors.green,
+              red: Colors.red,
             ),
-          ),
-        );
-      },
+            child: Center(
+              child: Text('${widget.percent}%',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900, fontSize: 12)),
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
-class _ShimmerCircle extends StatelessWidget {
-  const _ShimmerCircle({required this.size});
-  final double size;
+class _DonutPainter extends CustomPainter {
+  _DonutPainter(
+      {required this.greenPercent, required this.green, required this.red});
+  final double greenPercent;
+  final Color green;
+  final Color red;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 8.0;
+    final center = size.center(Offset.zero);
+    final radius = min(size.width, size.height) / 2 - stroke;
+
+    final basePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -pi / 2,
+        2 * pi,
+        false,
+        basePaint..color = red.withOpacity(.45));
+
+    final sweep = 2 * pi * (greenPercent.clamp(0, 100) / 100);
+    if (sweep > 0) {
+      canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          -pi / 2,
+          sweep,
+          false,
+          basePaint..color = green);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter old) =>
+      old.greenPercent != greenPercent ||
+      old.green != green ||
+      old.red != red;
+}
+
+class _Lined extends StatelessWidget {
+  const _Lined({required this.icon, required this.label, required this.value});
+  final IconData icon;
+  final String label;
+  final String value;
   @override
   Widget build(BuildContext context) {
-    return ClipOval(
-      child: SizedBox(
-        height: size,
-        width: size,
-        child: const _ShimmerBox(height: double.infinity, width: double.infinity),
-      ),
+    final t = Theme.of(context).textTheme;
+    final c = t.bodyMedium?.color?.withOpacity(.7);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: c),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(style: t.bodyMedium, children: [
+              TextSpan(
+                  text: '$label: ',
+                  style:
+                      t.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
+              TextSpan(text: value),
+            ]),
+          ),
+        ),
+      ],
     );
+  }
+}
+
+class _Multiline extends StatelessWidget {
+  const _Multiline(
+      {required this.icon, required this.label, required this.value});
+  final IconData icon;
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = t.bodyMedium?.color?.withOpacity(.7);
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Icon(icon, size: 18, color: c),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label,
+              style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(value,
+              style: t.bodyMedium,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis),
+        ]),
+      ),
+    ]);
+  }
+}
+
+class _SkillsChips extends StatelessWidget {
+  const _SkillsChips({required this.skills});
+  final List<String> skills;
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).primaryColor;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Skills',
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w800)),
+      const SizedBox(height: 6),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: skills.take(12).map((s) {
+          return Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: primary.withOpacity(.06),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: primary.withOpacity(.2)),
+            ),
+            child: Text(s,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          );
+        }).toList(),
+      ),
+    ]);
   }
 }
 
@@ -355,38 +691,54 @@ class _ChipInfo extends StatelessWidget {
   const _ChipInfo({required this.icon, required this.label});
   final IconData icon;
   final String label;
-
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      padding:
+          const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: Colors.grey[700]),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 12.5, color: Colors.grey[700], fontWeight: FontWeight.w600)),
-        ],
-      ),
+          color: Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(999)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 18, color: Colors.grey[700]),
+        const SizedBox(width: 6),
+        Text(label,
+            style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600)),
+      ]),
     );
   }
 }
 
-class _Blob extends StatelessWidget {
-  const _Blob({required this.color, required this.size});
-  final Color color;
-  final double size;
+class _MatchItem {
+  _MatchItem({
+    required this.careerId,
+    required this.fitPercent,
+    required this.assessment,
+    this.title,
+    this.description,
+    this.industry,
+    this.skills,
+  });
+  final String careerId;
+  final int fitPercent;
+  final String assessment;
+  String? title;
+  String? description;
+  String? industry;
+  List<String>? skills;
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: size,
-      width: size,
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(size)),
-    );
-  }
+class _CareerInfo {
+  _CareerInfo(
+      {required this.title,
+      required this.description,
+      required this.industry,
+      required this.skills});
+  final String title;
+  final String description;
+  final String industry;
+  final List<String> skills;
 }
