@@ -7,7 +7,6 @@ import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
 import 'package:aspire_edge_404_notfound/pages/answer_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_docs_all_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
-import 'package:aspire_edge_404_notfound/pages/career_matches_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
 import 'package:aspire_edge_404_notfound/pages/coaching_tools_page.dart';
@@ -45,7 +44,6 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-/// Keep user + tier + hasMatches at top-level for simple checks in routes
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -57,10 +55,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  User? _user;
-  String _tier = ''; // empty => not admin by default
-  bool _userDocReady = false;
-  bool _hasMatches = false;
+  String _tier = '';
 
   StreamSubscription<User?>? _authSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _userDocSub;
@@ -69,11 +64,8 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _authSub = FirebaseAuth.instance.authStateChanges().listen((u) {
-      _user = u;
       _userDocSub?.cancel();
-      _userDocReady = false;
       _tier = '';
-      _hasMatches = false;
 
       if (u != null) {
         _userDocSub = FirebaseFirestore.instance
@@ -83,9 +75,6 @@ class _MyAppState extends State<MyApp> {
             .listen((snap) {
               final data = snap.data();
               _tier = (data?['Tier'] ?? '').toString();
-              final matches = (data?['CareerMatches'] as List?) ?? const [];
-              _hasMatches = matches.isNotEmpty;
-              _userDocReady = true;
               if (mounted) setState(() {});
             });
       } else {
@@ -145,19 +134,7 @@ class _MyAppState extends State<MyApp> {
               '/career_matches',
             );
           }
-          if (_user == null) {
-            return widget.withLayout(const CareerQuizPage(), '/career_matches');
-          }
-          if (!_userDocReady) {
-            return widget.withLayout(
-              const Center(child: CircularProgressIndicator()),
-              '/career_matches',
-            );
-          }
-          return widget.withLayout(
-            _hasMatches ? const CareerMatchesPage() : const CareerQuizPage(),
-            '/career_matches',
-          );
+          return widget.withLayout(const CareerQuizPage(), '/career_matches');
         },
 
         // Quiz authoring / admin
