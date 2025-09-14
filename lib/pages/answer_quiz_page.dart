@@ -168,7 +168,6 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
 
     setState(() => _submitting = true);
 
-    // Show the custom loading screen
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -178,7 +177,9 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
     try {
       final quizPayload = _buildResultPayload();
 
-      final careerSnap = await FirebaseFirestore.instance.collection('CareerBank').get();
+      final careerSnap = await FirebaseFirestore.instance
+          .collection('CareerBank')
+          .get();
       final careers = careerSnap.docs.map((d) {
         final raw = d.data();
         final safe = sanitizeForJson(raw);
@@ -197,15 +198,11 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
-      
-      // Pop the loading screen first
-      Navigator.of(context).pop(); 
-      // Then pop this page to go back to the previous screen
-      Navigator.of(context).pop();
 
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
-      // Pop the loading screen on error
       Navigator.of(context).pop();
 
       final primary = Theme.of(context).primaryColor;
@@ -240,14 +237,16 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
     }
 
     final systemPrompt = '''
-You are a strict career-matching assistant. For EACH career provided, compute a suitability score from 0 to 100 based on the user's tier and quiz answers.
-Be decisive and use the full 0–100 range. Keep each assessment short (<= 25 words), specific, and actionable. Do not repeat question texts.
-Return ONLY JSON following the provided schema. No extra commentary.
+You are a strict career-matching assistant. Score EVERY career from 0–100 using the user's tier and quiz answers. Use the full range and be decisive.
+Return ONLY the top 5 with score strictly greater than 50.
+Important: All returned matches must have DISTINCT integer scores (no ties). If two careers feel equal, break the tie with finer signals (experience depth, tool familiarity, domain exposure), and assign slightly different scores.
+For each match, write a single-paragraph assessment (50–90 words): why it fits; 1 small risk or gap; 2–3 concrete next steps/skills/certifications/tools. No line breaks, no bullets.
+Return ONLY JSON following the schema. No extra commentary.
 ''';
 
     final userPayload = {
       'instruction':
-          'Given the user tier and quiz result, compute a suitability score and a concise assessment for EVERY career.',
+          'Score all careers, then output only the top 5 with fitPercent > 50. Ensure all fitPercent values are unique integers (no ties).',
       'userTier': userTier,
       'quizResult': quizResult,
       'careers': careers,
@@ -271,23 +270,10 @@ Return ONLY JSON following the provided schema. No extra commentary.
         'required': ['matches'],
         'additionalProperties': false,
       },
-      'example': {
-        'matches': [
-          {
-            'careerId': 'abc123',
-            'fitPercent': 86,
-            'assessment': 'Strong alignment with your interests and skills.',
-          },
-          {
-            'careerId': 'def456',
-            'fitPercent': 42,
-            'assessment': 'Possible, but other roles fit better.',
-          },
-        ],
-      },
     };
 
     final safeUserPayload = sanitizeForJson(userPayload);
+
     final uri = Uri.parse('$kOpenAIBaseUrl/chat/completions');
     final headers = {
       'Authorization': 'Bearer $kOpenAIApiKey',
@@ -302,7 +288,7 @@ Return ONLY JSON following the provided schema. No extra commentary.
         {
           'role': 'user',
           'content':
-              'Return ONLY a strict JSON object following the schema { matches: [{careerId, fitPercent, assessment}] }.\nAssess every career in "careers". Here is the input:\n\n${jsonEncode(safeUserPayload)}',
+              'Return ONLY a strict JSON object following the schema { matches: [{careerId, fitPercent, assessment}] }. Assess all careers in "careers"; include only the top 5 with fitPercent > 50. All fitPercent values must be unique integers. Input:\n\n${jsonEncode(safeUserPayload)}',
         },
       ],
     });
@@ -332,6 +318,7 @@ Return ONLY JSON following the provided schema. No extra commentary.
     final rawMatches = (parsed['matches'] is List)
         ? parsed['matches'] as List
         : [];
+
     final results = rawMatches.map<Map<String, dynamic>>((m) {
       final id = '${m['careerId'] ?? ''}';
       final percent = _clampInt((m['fitPercent'] ?? 0) as num, 0, 100);
@@ -339,10 +326,25 @@ Return ONLY JSON following the provided schema. No extra commentary.
       return {'careerId': id, 'fitPercent': percent, 'assessment': assessment};
     }).toList();
 
-    results.sort(
-      (a, b) => (b['fitPercent'] ?? 0).compareTo(a['fitPercent'] ?? 0),
-    );
-    return results;
+    final filtered = results.where((r) => (r['fitPercent'] ?? 0) > 50).toList()
+      ..sort((a, b) => (b['fitPercent'] ?? 0).compareTo(a['fitPercent'] ?? 0));
+
+    final unique = <Map<String, dynamic>>[];
+    final used = <int>{};
+
+    for (final r in filtered) {
+      var score = (r['fitPercent'] ?? 0) as int;
+      while (used.contains(score) && score > 51) {
+        score -= 1;
+      }
+      if (score <= 50) continue;
+      r['fitPercent'] = score;
+      used.add(score);
+      unique.add(r);
+      if (unique.length == 5) break;
+    }
+
+    return unique;
   }
 
   int _clampInt(num n, int min, int max) {
@@ -351,10 +353,6 @@ Return ONLY JSON following the provided schema. No extra commentary.
     if (v > max) return max;
     return v;
   }
-
-  /// ===========================
-  /// UI helpers
-  /// ===========================
 
   Widget _header(BuildContext context) {
     final theme = Theme.of(context);
@@ -613,9 +611,6 @@ class _QItem {
   final DateTime? createdAt;
 }
 
-/// =======================================================
-/// New Code: The Beautiful Loading Screen
-/// =======================================================
 class _LoadingScreen extends StatefulWidget {
   const _LoadingScreen();
 
@@ -623,15 +618,16 @@ class _LoadingScreen extends StatefulWidget {
   State<_LoadingScreen> createState() => _LoadingScreenState();
 }
 
-class _LoadingScreenState extends State<_LoadingScreen> with SingleTickerProviderStateMixin {
+class _LoadingScreenState extends State<_LoadingScreen>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   final List<String> _messages = [
-    'Phân tích sở thích của bạn...',
-    'Đánh giá kỹ năng của bạn...',
-    'Tìm kiếm cơ hội nghề nghiệp phù hợp nhất...',
-    'Sắp xếp các gợi ý theo mức độ phù hợp...',
+    'Analyzing your preferences...',
+    'Evaluating your skills...',
+    'Finding the most suitable career opportunities...',
+    'Arranging suggestions by relevance...',
   ];
-  String _currentMessage = 'AI đang làm việc chăm chỉ...';
+  String _currentMessage = 'AI is working hard...';
   late final Timer _timer;
 
   @override
@@ -673,10 +669,8 @@ class _LoadingScreenState extends State<_LoadingScreen> with SingleTickerProvide
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Sử dụng Lottie Animation thay cho icon tĩnh
               Lottie.asset(
-                // Thay đổi tên file animation của bạn tại đây
-                'assets/lottie/ai_loading.json', 
+                'assets/lottie/ai_loading.json',
                 controller: _controller,
                 onLoaded: (composition) {
                   _controller
@@ -687,40 +681,40 @@ class _LoadingScreenState extends State<_LoadingScreen> with SingleTickerProvide
                 height: 150,
               ),
               const SizedBox(height: 30),
-              // Tiêu đề nổi bật
               Text(
-                'AI đang xử lý kết quả',
+                'AI is processing results',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
               const SizedBox(height: 16),
-              // Hiển thị thông điệp động
               SizedBox(
-                height: 50, // Đảm bảo chiều cao cố định để tránh layout nhảy
+                height: 50,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return ScaleTransition(scale: animation, child: child);
-                  },
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        return ScaleTransition(scale: animation, child: child);
+                      },
                   child: Text(
                     _currentMessage,
                     key: ValueKey<String>(_currentMessage),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 30),
-              // Hiệu ứng loading trẻ trung hơn
               LinearProgressIndicator(
                 backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).primaryColor,
+                ),
                 minHeight: 6,
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -732,9 +726,6 @@ class _LoadingScreenState extends State<_LoadingScreen> with SingleTickerProvide
   }
 }
 
-/// =======================================================
-/// Utils: Sanitize Firestore types to JSON-safe structures
-/// =======================================================
 dynamic sanitizeForJson(dynamic value) {
   if (value == null || value is num || value is String || value is bool) {
     return value;
