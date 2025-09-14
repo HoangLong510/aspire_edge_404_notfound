@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:iconsax/iconsax.dart';
 
-class CVTipDetailPage extends StatefulWidget {
-  const CVTipDetailPage({super.key});
+class CurriculumVitaeTipDetailPage extends StatefulWidget {
+  const CurriculumVitaeTipDetailPage({super.key});
 
   @override
-  State<CVTipDetailPage> createState() => _CVTipDetailPageState();
+  State<CurriculumVitaeTipDetailPage> createState() =>
+      _CurriculumVitaeTipDetailPageState();
 }
 
-class _CVTipDetailPageState extends State<CVTipDetailPage> {
+class _CurriculumVitaeTipDetailPageState
+    extends State<CurriculumVitaeTipDetailPage> {
   late final WebViewController _controller;
   bool _isVideoLoading = true;
 
@@ -35,14 +37,14 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
           "Recruiters love data: 'Increased sales by 25%' is stronger than 'Improved sales'."
     },
     {
-      "title": "Tailor your CV to each job you apply for",
+      "title": "Tailor your Curriculum Vitae to each job you apply for",
       "desc":
-          "Analyze the job description and adapt your CV to highlight the most relevant skills."
+          "Analyze the job description and adapt your Curriculum Vitae to highlight the most relevant skills."
     },
     {
       "title": "Keep it short, ideally 1–2 pages",
       "desc":
-          "HR typically spends less than 10 seconds scanning a CV. Conciseness is key."
+          "HR typically spends less than 10 seconds scanning a Curriculum Vitae. Conciseness is key."
     },
   ];
 
@@ -56,7 +58,7 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
 
   final List<Map<String, String>> _resources = const [
     {
-      "title": "Canva CV Templates",
+      "title": "Canva Curriculum Vitae Templates",
       "link": "https://www.canva.com/resumes/templates/"
     },
     {
@@ -97,9 +99,9 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("CV Writing Tips"),
+        title: const Text("Curriculum Vitae Writing Guide"),
+        centerTitle: true,
         backgroundColor: Colors.blueAccent,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -107,15 +109,15 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Welcome to the CV Masterclass",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              "Welcome to the Curriculum Vitae Masterclass",
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
             ),
             const SizedBox(height: 8),
             const Text(
-              "Your CV is the first impression you give to employers. "
+              "Your Curriculum Vitae is the first impression you give to employers. "
               "This guide will help you structure it professionally, "
               "avoid mistakes, and land more interviews.",
               style: TextStyle(color: Colors.black87, fontSize: 15),
@@ -141,7 +143,7 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
             const SizedBox(height: 20),
             TextField(
               decoration: InputDecoration(
-                hintText: "Search CV tips...",
+                hintText: "Search Curriculum Vitae tips...",
                 prefixIcon: const Icon(Iconsax.search_normal),
                 filled: true,
                 fillColor: Colors.grey[100],
@@ -155,23 +157,23 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
               },
             ),
             const SizedBox(height: 20),
-            Text(
-              "List of CV Tips",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+            const Text(
+              "List of Curriculum Vitae Tips",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 12),
             ...filteredTips.map(
               (tip) => Card(
-                elevation: 2,
+                elevation: 3,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ExpansionTile(
-                  leading: const Icon(Iconsax.tick_circle, color: Colors.green),
                   title: Text(
                     tip["title"]!,
                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -189,31 +191,33 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
               ),
             ),
             const SizedBox(height: 30),
-            Text(
+            const Text(
               "Common Mistakes to Avoid",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 12),
             ..._mistakes.map(
               (m) => Card(
                 color: Colors.red.shade50,
+                elevation: 1,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
-                  leading: const Icon(Iconsax.close_circle, color: Colors.red),
                   title: Text(m),
                 ),
               ),
             ),
             const SizedBox(height: 30),
-            Text(
+            const Text(
               "Extra Resources",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 12),
             ..._resources.map(
@@ -221,7 +225,6 @@ class _CVTipDetailPageState extends State<CVTipDetailPage> {
                 elevation: 1,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
-                  leading: const Icon(Iconsax.link, color: Colors.blue),
                   title: Text(r["title"]!),
                   subtitle: Text(r["link"]!),
                   onTap: () {

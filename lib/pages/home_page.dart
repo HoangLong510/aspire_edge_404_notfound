@@ -307,64 +307,122 @@ class HomePage extends StatelessWidget {
         ],
       );
 
-  Widget _buildBlog(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-            child: Text(
-              "Recommended for You",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+  Widget _buildBlog(BuildContext context) {
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+
+    // Query blogs today
+    final todayQuery = FirebaseFirestore.instance
+        .collection("Blogs")
+        .where("CreatedAt", isGreaterThanOrEqualTo: startOfDay)
+        .orderBy("CreatedAt", descending: true)
+        .limit(1);
+
+    // Fallback query: newest blog if today is empty
+    final fallbackQuery = FirebaseFirestore.instance
+        .collection("Blogs")
+        .orderBy("CreatedAt", descending: true)
+        .limit(1);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+          child: Text(
+            "Recommended for You",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          Card(
-            clipBehavior: Clip.antiAlias,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: InkWell(
-              onTap: () => Navigator.pushNamed(context, "/blog_detail"),
+        ),
+        StreamBuilder<QuerySnapshot>(
+          stream: todayQuery.snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.data!.docs.isEmpty) {
+              // fallback
+              return StreamBuilder<QuerySnapshot>(
+                stream: fallbackQuery.snapshots(),
+                builder: (context, fbSnap) {
+                  if (!fbSnap.hasData || fbSnap.data!.docs.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text("No blogs available."),
+                    );
+                  }
+                  return _buildBlogCard(context, fbSnap.data!.docs.first);
+                },
+              );
+            }
+
+            return _buildBlogCard(context, snapshot.data!.docs.first);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBlogCard(BuildContext context, DocumentSnapshot doc) {
+    final blogId = doc.id;
+    final data = doc.data() as Map<String, dynamic>;
+    final title = data["Title"] ?? "Untitled";
+    final desc = data["Description"] ?? "";
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(
+          context,
+          "/blog_detail",
+          arguments: {"blogId": blogId},
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Giữ banner đẹp
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                height: 150,
+                width: double.infinity,
+                child: Center(
+                  child: Lottie.asset(
+                    "assets/lottie/interview.json",
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: SizedBox(
-                      height: 150,
-                      width: double.infinity,
-                      child: Center(
-                        child: Lottie.asset(
-                          "assets/lottie/interview.json",
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "5 Secrets to a Successful Interview",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Insights from HR experts",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    desc,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      );
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildQuickInterests(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
