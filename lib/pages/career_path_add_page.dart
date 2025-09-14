@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 
 class CareerPathAddPage extends StatefulWidget {
   final String careerId;
+  final DocumentSnapshot? path;
 
-  const CareerPathAddPage({super.key, required this.careerId});
+  const CareerPathAddPage({
+    super.key,
+    required this.careerId,
+    this.path,
+  });
 
   @override
   State<CareerPathAddPage> createState() => _CareerPathAddPageState();
@@ -20,12 +25,17 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
   int _nextOrder = 1;
   String? _careerTitle;
   bool _loading = false;
+  bool get _isEditing => widget.path != null;
 
   @override
   void initState() {
     super.initState();
     _loadCareerInfo();
-    _loadNextOrder();
+    if (_isEditing) {
+      _prefillData();
+    } else {
+      _loadNextOrder();
+    }
   }
 
   @override
@@ -56,6 +66,20 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
     }
   }
 
+  void _prefillData() {
+    final data = widget.path!.data() as Map<String, dynamic>;
+    _levelNameController.text = (data['Level_Name'] ?? '').toString();
+    _salaryController.text = (data['Salary_Range'] ?? '').toString();
+    _descController.text = (data['Description'] ?? '').toString();
+    final skills = data['Skills'];
+    if (skills is List) {
+      _skillsController.text = skills.join(', ');
+    } else if (skills is String) {
+      _skillsController.text = skills;
+    }
+    _nextOrder = data['Level_Order'] ?? 1;
+  }
+
   Future<void> _loadNextOrder() async {
     final snapshot = await FirebaseFirestore.instance
         .collection("CareerBank")
@@ -64,25 +88,23 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
         .orderBy("Level_Order")
         .get();
 
-    // Mặc định nếu chưa có thì level đầu tiên là 1
     int next = 1;
-
     for (var doc in snapshot.docs) {
       final current = doc["Level_Order"] as int;
       if (current == next) {
-        next++; // nếu trùng thì tăng tiếp
+        next++;
       } else {
-        break; // gặp khoảng trống thì dừng
+        break;
       }
     }
 
-    _nextOrder = next;
-    setState(() {});
+    setState(() {
+      _nextOrder = next;
+    });
   }
 
-  Future<void> _addPath() async {
+  Future<void> _savePath() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _loading = true);
 
     final data = {
@@ -91,45 +113,54 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
       "Salary_Range": _salaryController.text.trim(),
       "Description": _descController.text.trim(),
       "Skills": _toSkillsArray(_skillsController.text),
+      "updatedAt": FieldValue.serverTimestamp(),
     };
 
-    await FirebaseFirestore.instance
+    final colRef = FirebaseFirestore.instance
         .collection("CareerBank")
         .doc(widget.careerId)
-        .collection("CareerPaths")
-        .add(data);
+        .collection("CareerPaths");
 
-    setState(() {
+    if (_isEditing) {
+      await colRef.doc(widget.path!.id).update(data);
+    } else {
+      await colRef.add(data);
       _nextOrder++;
-      _levelNameController.clear();
-      _salaryController.clear();
-      _descController.clear();
-      _skillsController.clear();
-      _loading = false;
-    });
+    }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Đã thêm lộ trình")));
+    setState(() => _loading = false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isEditing ? "Route updated" : "Route added"),
+        ),
+      );
+      if (_isEditing) {
+        Navigator.pop(context);
+      } else {
+        _levelNameController.clear();
+        _salaryController.clear();
+        _descController.clear();
+        _skillsController.clear();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).primaryColor;
+    final isEditing = _isEditing;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _careerTitle != null
-              ? "Thêm lộ trình - $_careerTitle"
-              : "Thêm lộ trình",
-        ),
       ),
-      // ============ NEW BODY (UI only) for CareerPathAddPage ============
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final primary = Theme.of(context).primaryColor;
           final isWide = constraints.maxWidth >= 900;
 
-          InputDecoration deco(String label, {String? hint, IconData? icon}) {
+          InputDecoration deco(String label,
+              {String? hint, IconData? icon}) {
             return InputDecoration(
               labelText: label,
               hintText: hint,
@@ -147,10 +178,8 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(color: primary, width: 1.8),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 14,
-              ),
+              contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             );
           }
 
@@ -169,7 +198,6 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                   constraints: const BoxConstraints(maxWidth: 880),
                   child: Column(
                     children: [
-                      // Header card
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -184,7 +212,8 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                             ),
                           ],
                         ),
-                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                        padding:
+                        const EdgeInsets.fromLTRB(18, 16, 18, 14),
                         child: Row(
                           children: [
                             Container(
@@ -194,7 +223,7 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Icon(
-                                Icons.add_chart,
+                                isEditing ? Icons.edit : Icons.add_chart,
                                 color: primary,
                                 size: 24,
                               ),
@@ -205,9 +234,9 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _careerTitle != null
-                                        ? "Thêm lộ trình - $_careerTitle"
-                                        : "Thêm lộ trình",
+                                    isEditing
+                                        ? "Edit Level $_nextOrder"
+                                        : "Add Level $_nextOrder",
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleLarge
@@ -215,13 +244,15 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    "Đang thêm Level $_nextOrder • Nhập thông tin ngắn gọn, rõ ràng",
-                                    style: Theme.of(context).textTheme.bodySmall
+                                    "Enter information briefly and clearly",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
                                         ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -232,7 +263,6 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
 
                       const SizedBox(height: 16),
 
-                      // Form card
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -247,7 +277,8 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                             ),
                           ],
                         ),
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+                        padding:
+                        const EdgeInsets.fromLTRB(18, 18, 18, 14),
                         child: Form(
                           key: _formKey,
                           child: Column(
@@ -255,59 +286,48 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                               if (_careerTitle != null) ...[
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.work_outline,
-                                      size: 18,
-                                      color: primary,
-                                    ),
+                                    Icon(Icons.work_outline,
+                                        size: 18, color: primary),
                                     const SizedBox(width: 8),
                                     Text(
-                                      "Nghề: $_careerTitle",
+                                      "Career: $_careerTitle",
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
                                           ?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                          ),
+                                          fontWeight: FontWeight.w800),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 Divider(
-                                  height: 24,
-                                  color: primary.withOpacity(0.16),
-                                ),
+                                    height: 24,
+                                    color: primary.withOpacity(0.16)),
                                 const SizedBox(height: 6),
                               ],
 
-                              // Grid inputs (responsive)
                               if (isWide)
                                 Row(
                                   children: [
                                     Expanded(
                                       child: TextFormField(
                                         controller: _levelNameController,
-                                        decoration: deco(
-                                          "Level Name",
-                                          hint: "e.g., Resident Doctor",
-                                          icon: Icons.flag,
-                                        ),
-                                        validator: (v) => v == null || v.isEmpty
-                                            ? "Nhập tên level"
+                                        decoration: deco("Level Name",
+                                            hint: "e.g., Resident Doctor", icon: Icons.flag),
+                                        validator: (v) => v == null || v.trim().isEmpty
+                                            ? "Enter the level name"
                                             : null,
-                                        textInputAction: TextInputAction.next,
                                       ),
                                     ),
                                     const SizedBox(width: 14),
                                     Expanded(
                                       child: TextFormField(
                                         controller: _salaryController,
-                                        decoration: deco(
-                                          "Salary Range",
-                                          hint: "e.g., \$50,000 - \$70,000",
-                                          icon: Icons.attach_money,
-                                        ),
-                                        textInputAction: TextInputAction.next,
+                                        decoration: deco("Salary Range",
+                                            hint: "e.g., \$50,000 - \$70,000", icon: Icons.attach_money),
+                                        validator: (v) => v == null || v.trim().isEmpty
+                                            ? "Enter salary"
+                                            : null,
                                       ),
                                     ),
                                   ],
@@ -315,70 +335,66 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                               else ...[
                                 TextFormField(
                                   controller: _levelNameController,
-                                  decoration: deco(
-                                    "Level Name",
-                                    hint: "e.g., Resident Doctor",
-                                    icon: Icons.flag,
-                                  ),
-                                  validator: (v) => v == null || v.isEmpty
-                                      ? "Nhập tên level"
+                                  decoration: deco("Level Name",
+                                      hint: "e.g., Resident Doctor", icon: Icons.flag),
+                                  validator: (v) => v == null || v.trim().isEmpty
+                                      ? "Enter the level name"
                                       : null,
-                                  textInputAction: TextInputAction.next,
                                 ),
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _salaryController,
-                                  decoration: deco(
-                                    "Salary Range",
-                                    hint: "e.g., \$50,000 - \$70,000",
-                                    icon: Icons.attach_money,
-                                  ),
-                                  textInputAction: TextInputAction.next,
+                                  decoration: deco("Salary Range",
+                                      hint: "e.g., \$50,000 - \$70,000", icon: Icons.attach_money),
+                                  validator: (v) => v == null || v.trim().isEmpty
+                                      ? "Enter salary"
+                                      : null,
                                 ),
                               ],
 
                               const SizedBox(height: 12),
                               TextFormField(
                                 controller: _descController,
-                                decoration: deco(
-                                  "Description",
-                                  hint: "Mô tả ngắn gọn giai đoạn này",
-                                  icon: Icons.description_outlined,
-                                ),
+                                decoration: deco("Description",
+                                    hint: "Briefly describe this stage",
+                                    icon: Icons.description_outlined),
                                 maxLines: 5,
+                                validator: (v) => v == null || v.trim().isEmpty
+                                    ? "Enter a description"
+                                    : null,
                               ),
 
                               const SizedBox(height: 12),
-                              // Skills (UI only; nếu muốn lưu hãy thêm 1 dòng ở _addPath)
                               TextFormField(
                                 controller: _skillsController,
-                                decoration: deco(
-                                  "Skills (optional)",
-                                  hint: "Comma-separated: Teamwork, Clinical Skills, Communication",
-                                  icon: Icons.tips_and_updates_outlined,
-                                ),
+                                decoration: deco("Skills (optional)",
+                                    hint: "Comma-separated: Teamwork, Clinical Skills, Communication",
+                                    icon: Icons.tips_and_updates_outlined),
                               ),
 
                               const SizedBox(height: 18),
-                              if (_loading) const CircularProgressIndicator(),
-                              if (!_loading)
+                              if (_loading)
+                                const CircularProgressIndicator()
+                              else
                                 Row(
                                   children: [
                                     Expanded(
                                       child: ElevatedButton.icon(
-                                        onPressed: _addPath,
-                                        icon: const Icon(Icons.add),
-                                        label: const Text("Thêm & tiếp tục"),
+                                        onPressed: _savePath,
+                                        icon: Icon(isEditing
+                                            ? Icons.save
+                                            : Icons.add),
+                                        label: Text(isEditing
+                                            ? "Save changes"
+                                            : "Add & continue"),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: primary,
                                           foregroundColor: Colors.white,
                                           padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
+                                              vertical: 14),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
+                                            borderRadius:
+                                            BorderRadius.circular(12),
                                           ),
                                         ),
                                       ),
@@ -386,22 +402,22 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: OutlinedButton(
-                                        onPressed: () => Navigator.pop(context),
+                                        onPressed: () =>
+                                            Navigator.pop(context),
                                         style: OutlinedButton.styleFrom(
                                           side: BorderSide(
-                                            color: primary.withOpacity(0.4),
-                                          ),
+                                              color:
+                                              primary.withOpacity(0.4)),
                                           foregroundColor: primary,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
+                                          padding:
+                                          const EdgeInsets.symmetric(
+                                              vertical: 14),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
+                                            borderRadius:
+                                            BorderRadius.circular(12),
                                           ),
                                         ),
-                                        child: const Text("Xong"),
+                                        child: const Text("cancel"),
                                       ),
                                     ),
                                   ],
@@ -413,9 +429,14 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
 
                       const SizedBox(height: 10),
                       Text(
-                        "Tip: Tách nhiều kỹ năng bằng dấu phẩy. Viết mô tả ngắn, súc tích.",
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        "Tip: Separate multiple skills with commas. Write short, concise descriptions.",
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -427,7 +448,6 @@ class _CareerPathAddPageState extends State<CareerPathAddPage> {
           );
         },
       ),
-      // ============ END NEW BODY ============
     );
   }
 }

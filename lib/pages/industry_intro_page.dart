@@ -109,13 +109,13 @@ class _IndustryIntroPageState extends State<IndustryIntroPage> {
                     context,
                     "/career_bank",
                     arguments: {
-                      "industry": industryTitle, // để code hiện tại ở Manage vẫn hiểu
-                      "industryId": id,          // dự phòng cho về sau
+                      "industry": industryTitle,
+                      "industryId": id,
                     },
                   );
                 },
                 icon: const Icon(Icons.list_alt),
-                label: Text("Xem danh sách nghề $industryTitle"),
+                label: Text("View career list in $industryTitle"),
               ),
             ),
           ),
@@ -125,7 +125,6 @@ class _IndustryIntroPageState extends State<IndustryIntroPage> {
   }
 }
 
-/// Banner
 class _BannerHero extends StatelessWidget {
   final String imageUrl;
   final String title;
@@ -179,7 +178,7 @@ class _BannerHero extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    "Tổng quan • $title",
+                    "Overview • $title",
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -196,7 +195,6 @@ class _BannerHero extends StatelessWidget {
   }
 }
 
-/// Stats Slide
 class _StatsSlide extends StatelessWidget {
   final List<String> stats;
   final Color accent;
@@ -210,7 +208,7 @@ class _StatsSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SlideCard(
-      title: "Xu hướng & số liệu",
+      title: "Trends & Statistics",
       accent: accent,
       lottieUrl: lottieUrl,
       children: stats
@@ -223,7 +221,6 @@ class _StatsSlide extends StatelessWidget {
   }
 }
 
-/// Skills Slide
 class _SkillsSlide extends StatelessWidget {
   final List<String> skills;
   final Color accent;
@@ -237,7 +234,7 @@ class _SkillsSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SlideCard(
-      title: "Kỹ năng trọng tâm",
+      title: "Key Skills",
       accent: accent,
       lottieUrl: lottieUrl,
       children: [
@@ -256,7 +253,6 @@ class _SkillsSlide extends StatelessWidget {
   }
 }
 
-/// Roles Slide
 class _RolesSlide extends StatelessWidget {
   final List<String> roles;
   final Color accent;
@@ -270,7 +266,7 @@ class _RolesSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SlideCard(
-      title: "Vai trò nổi bật",
+      title: "Featured Roles",
       accent: accent,
       lottieUrl: lottieUrl,
       children: roles
@@ -282,7 +278,7 @@ class _RolesSlide extends StatelessWidget {
     );
   }
 }
-/// Reusable Slide card with optional Lottie
+
 class _SlideCard extends StatelessWidget {
   final String title;
   final Color accent;
@@ -321,7 +317,6 @@ class _SlideCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 10),
 
-                // ✅ Phân biệt asset vs network
                 if (lottieUrl != null && lottieUrl!.isNotEmpty)
                   Center(
                     child: lottieUrl!.startsWith('assets/')

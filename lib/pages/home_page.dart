@@ -203,7 +203,7 @@ class HomePage extends StatelessWidget {
               Navigator.pushNamed(
                 context,
                 "/industry_intro",
-                arguments: {"industry": "Business"},
+                arguments: {"industry": "Healthcare"},
               );
             },
           ),

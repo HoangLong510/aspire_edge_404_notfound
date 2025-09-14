@@ -28,6 +28,9 @@ import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/pages/profile_page.dart';
 import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
+import 'package:aspire_edge_404_notfound/pages/sedding/career_seed.dart';
+import 'package:aspire_edge_404_notfound/pages/sedding/seed_art_docs.dart';
+import 'package:aspire_edge_404_notfound/pages/sedding/seed_healthcare_docs.dart';
 import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/add_story_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/admin_stories_page.dart';
@@ -45,8 +48,18 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await LocalNoti.init();
+  // await seedArtDocs();
 
-  runApp(const MyApp());
+  final user = FirebaseAuth.instance.currentUser;
+
+  runApp(
+    user == null
+        ? const MyApp() // nếu chưa login thì cứ chạy MyApp bình thường
+        : NotificationsListener(
+      uid: user.uid,
+      child: const MyApp(),
+    ),
+  );
 }
 
 /// Keep user + tier + hasMatches at top-level for simple checks in routes
@@ -62,7 +75,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   User? _user;
-  String _tier = ''; // empty => not admin by default
+  String _tier = '';
   bool _userDocReady = false;
   bool _hasMatches = false;
 

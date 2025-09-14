@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class IndustryDef {
-  final String id;      // 'it' | 'health' | 'art' | 'science'
-  final String name;    // hiển thị
-  final int order;      // để sort dropdown
-  final IconData icon;  // optional
+  final String id;
+  final String name;
+  final int order;
+  final IconData icon;
 
   const IndustryDef(this.id, this.name, this.order, this.icon);
 }
@@ -16,7 +16,6 @@ const INDUSTRIES = <IndustryDef>[
   IndustryDef('science', 'Science',                4, Icons.science),
 ];
 
-// Helpers
 IndustryDef? industryById(String? id) =>
     INDUSTRIES.firstWhere((e) => e.id == id, orElse: () => const IndustryDef('', '', 999, Icons.help));
 
