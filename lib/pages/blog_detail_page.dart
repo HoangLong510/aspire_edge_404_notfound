@@ -76,26 +76,23 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
 
         List<QueryDocumentSnapshot<Map<String, dynamic>>> candidates = [];
 
-        // Case 1: Có CareerId -> lấy cùng CareerId
-        if (careerIdDyn != null && (careerId == null || careerId.trim().isNotEmpty)) {
-          final sameCareer = await col
-              .where("CareerId", isEqualTo: careerIdDyn)
-              .limit(50)
-              .get();
+        if (careerIdDyn != null &&
+            (careerId == null || careerId.trim().isNotEmpty)) {
+          final sameCareer =
+              await col.where("CareerId", isEqualTo: careerIdDyn).limit(50).get();
           candidates = sameCareer.docs;
         } else {
-          // Case 2: Không có CareerId -> lấy các blog CareerId == null hoặc == ''
-          final nullCareer = await col.where("CareerId", isNull: true).limit(50).get();
-          final emptyCareer = await col.where("CareerId", isEqualTo: "").limit(50).get();
+          final nullCareer =
+              await col.where("CareerId", isNull: true).limit(50).get();
+          final emptyCareer =
+              await col.where("CareerId", isEqualTo: "").limit(50).get();
 
-          // Hợp nhất & loại trùng theo id
           final map = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
           for (final d in nullCareer.docs) map[d.id] = d;
           for (final d in emptyCareer.docs) map[d.id] = d;
           candidates = map.values.toList();
         }
 
-        // Loại chính nó & sắp xếp theo CreatedAt gần nhất
         final related = candidates
             .where((d) => d.id != widget.blogId)
             .map((d) {
@@ -170,7 +167,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     letterSpacing: .2,
-                    color: theme.primaryColor, // title "Blog Detail" = primary
+                    color: theme.primaryColor,
                   ),
                 ),
               ),
@@ -249,7 +246,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                 children: [
                   _header(context, "Blog Detail"),
 
-                  // Title + meta (blog title in black)
+                  // Title + meta
                   _sectionCard(
                     context: context,
                     child: Column(
@@ -345,7 +342,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                     ),
                   if (imageUrls.isNotEmpty) const SizedBox(height: 14),
 
-                  // Content (not in card)
+                  // Content
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: MarkdownBody(
@@ -367,7 +364,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Video
+                  // Video with control bar
                   if (_videoController != null &&
                       _videoController!.value.isInitialized)
                     _sectionCard(
@@ -377,35 +374,25 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                         children: [
                           AspectRatio(
                             aspectRatio: _videoController!.value.aspectRatio,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: VideoPlayer(_videoController!),
-                                ),
-                                if (!_videoController!.value.isPlaying)
-                                  IconButton(
-                                    iconSize: 64,
-                                    icon: Icon(Icons.play_circle_fill,
-                                        color:
-                                            Colors.white.withOpacity(0.9)),
-                                    onPressed: () {
-                                      setState(() {
-                                        _videoController!.play();
-                                      });
-                                    },
-                                  ),
-                              ],
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: VideoPlayer(_videoController!),
                             ),
                           ),
+                          VideoProgressIndicator(
+                            _videoController!,
+                            allowScrubbing: true,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 12),
+                          ),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               IconButton(
                                 icon: Icon(
                                   _videoController!.value.isPlaying
-                                      ? Icons.pause_circle_filled
-                                      : Icons.play_circle_filled,
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
                                   color: primary,
                                 ),
                                 onPressed: () {
@@ -418,11 +405,25 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                                   });
                                 },
                               ),
-                              Text(
-                                _videoController!.value.isPlaying
-                                    ? "Playing"
-                                    : "Paused",
-                                style: TextStyle(color: Colors.grey[700]),
+                              IconButton(
+                                icon: const Icon(Icons.replay_10),
+                                onPressed: () {
+                                  final pos =
+                                      _videoController!.value.position;
+                                  _videoController!.seekTo(
+                                    pos - const Duration(seconds: 10),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.forward_10),
+                                onPressed: () {
+                                  final pos =
+                                      _videoController!.value.position;
+                                  _videoController!.seekTo(
+                                    pos + const Duration(seconds: 10),
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -433,7 +434,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                       _videoController!.value.isInitialized)
                     const SizedBox(height: 14),
 
-                  // ===== Related blogs (no wrapper card) =====
+                  // Related Blogs
                   if (_relatedBlogs.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
@@ -473,7 +474,6 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(12),
                             onTap: () {
-                              // pushNamed (not replacement) để Back quay lại blog trước
                               Navigator.pushNamed(
                                 context,
                                 "/blog_detail",
@@ -521,7 +521,6 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          // Title bold
                                           Text(
                                             relTitle,
                                             maxLines: 2,
@@ -534,7 +533,6 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                                                 ),
                                           ),
                                           const SizedBox(height: 6),
-                                          // Content (2 lines)
                                           Text(
                                             _plainFromMd(relContent),
                                             maxLines: 2,
@@ -547,7 +545,6 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                                                 ),
                                           ),
                                           const SizedBox(height: 8),
-                                          // Meta
                                           Row(
                                             children: [
                                               Icon(
@@ -606,7 +603,6 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
   }
 }
 
-// ====== Reuse chip style ======
 class _ChipInfo extends StatelessWidget {
   const _ChipInfo({required this.icon, required this.label});
   final IconData icon;

@@ -238,7 +238,7 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
 
     final systemPrompt = '''
 You are a strict career-matching assistant. Score EVERY career from 0–100 using the user's tier and quiz answers. Use the full range and be decisive.
-Return ONLY the top 5 with score strictly greater than 50.
+Return ONLY the top 3 with score strictly greater than 50.
 Important: All returned matches must have DISTINCT integer scores (no ties). If two careers feel equal, break the tie with finer signals (experience depth, tool familiarity, domain exposure), and assign slightly different scores.
 For each match, write a single-paragraph assessment (50–90 words): why it fits; 1 small risk or gap; 2–3 concrete next steps/skills/certifications/tools. No line breaks, no bullets.
 Return ONLY JSON following the schema. No extra commentary.
@@ -386,7 +386,9 @@ Return ONLY JSON following the schema. No extra commentary.
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  'Answer Quiz',
+                  _userTier != null
+                      ? 'Answer Quiz for ${_userTier!.toUpperCase()}'
+                      : 'Answer Quiz',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleLarge?.copyWith(
