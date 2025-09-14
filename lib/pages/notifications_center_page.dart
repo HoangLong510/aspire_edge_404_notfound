@@ -4,7 +4,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
-
 class LocalNoti {
   static final _fln = FlutterLocalNotificationsPlugin();
 
@@ -19,14 +18,18 @@ class LocalNoti {
   static Future<void> show(String title, String body) async {
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
-        'notify_channel', 'Notifications',
-        importance: Importance.max, priority: Priority.high,
+        'notify_channel',
+        'Notifications',
+        importance: Importance.max,
+        priority: Priority.high,
       ),
       iOS: DarwinNotificationDetails(),
     );
     await _fln.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title, body, details,
+      title,
+      body,
+      details,
     );
   }
 }
@@ -34,7 +37,12 @@ class LocalNoti {
 class NotificationsListener extends StatefulWidget {
   final String uid;
   final Widget child;
-  const NotificationsListener({super.key, required this.uid, required this.child});
+
+  const NotificationsListener({
+    super.key,
+    required this.uid,
+    required this.child,
+  });
 
   @override
   State<NotificationsListener> createState() => _NotificationsListenerState();
@@ -55,30 +63,22 @@ class _NotificationsListenerState extends State<NotificationsListener> {
         .limit(50)
         .snapshots()
         .listen((snap) {
-      for (final c in snap.docChanges) {
-        if (c.type == DocumentChangeType.added) {
-          final id = c.doc.id;
-          if (_shownIds.contains(id)) continue;
-          _shownIds.add(id);
+          for (final c in snap.docChanges) {
+            if (c.type == DocumentChangeType.added) {
+              final id = c.doc.id;
+              final m = c.doc.data() as Map<String, dynamic>? ?? {};
+              final title = (m['title'] ?? 'Thông báo').toString();
+              final body = (m['body'] ?? '').toString();
+              final read = m['read'] == true;
 
-          final m = c.doc.data() as Map<String, dynamic>? ?? {};
-          final title = (m['title'] ?? 'Thông báo').toString();
-          final body  = (m['body'] ?? '').toString();
-          final read  = m['read'] == true;
-
-          if (!read) {
-            LocalNoti.show(title, body);
-
-            FirebaseFirestore.instance
-                .collection('Notifications')
-                .doc(widget.uid)
-                .collection('items')
-                .doc(id)
-                .update({'read': true});
+              if (!read && !_shownIds.contains(id)) {
+                _shownIds.add(id);
+                LocalNoti.show(title, body);
+              }
+              print("Listen change id=$id, read=$read");
+            }
           }
-        }
-      }
-    });
+        });
   }
 
   @override
@@ -93,6 +93,7 @@ class _NotificationsListenerState extends State<NotificationsListener> {
 
 class NotificationBell extends StatelessWidget {
   final String uid;
+
   const NotificationBell({super.key, required this.uid});
 
   @override
@@ -120,15 +121,17 @@ class NotificationBell extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              tooltip: 'Thông báo',
-              icon: Icon(unread > 0 ? Icons.notifications : Icons.notifications_none),
+              tooltip: 'Notifications',
+              icon: Icon(
+                unread > 0 ? Icons.notifications : Icons.notifications_none,
+              ),
               onPressed: () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => NotificationsInboxPage(uid: uid)),
+                  MaterialPageRoute(
+                    builder: (_) => NotificationsInboxPage(uid: uid),
+                  ),
                 );
-                // mark all read sau khi đóng inbox
-                await _markAllRead(uid);
               },
             ),
             if (unread > 0)
@@ -136,7 +139,10 @@ class NotificationBell extends StatelessWidget {
                 right: 8,
                 top: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(10),
@@ -144,7 +150,9 @@ class NotificationBell extends StatelessWidget {
                   child: Text(
                     unread > 99 ? '99+' : '$unread',
                     style: const TextStyle(
-                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -154,27 +162,11 @@ class NotificationBell extends StatelessWidget {
       },
     );
   }
-
-  static Future<void> _markAllRead(String uid) async {
-    final fs = FirebaseFirestore.instance;
-    final q = await fs
-        .collection('Notifications')
-        .doc(uid)
-        .collection('items')
-        .where('read', isEqualTo: false)
-        .limit(500)
-        .get();
-
-    final batch = fs.batch();
-    for (final d in q.docs) {
-      batch.update(d.reference, {'read': true});
-    }
-    await batch.commit();
-  }
 }
 
 class NotificationsInboxPage extends StatefulWidget {
   final String uid;
+
   const NotificationsInboxPage({super.key, required this.uid});
 
   @override
@@ -246,8 +238,11 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_rounded,
-                      color: Colors.grey[400], size: 72),
+                  Icon(
+                    Icons.notifications_off_rounded,
+                    color: Colors.grey[400],
+                    size: 72,
+                  ),
                   const SizedBox(height: 14),
                   Text(
                     'No notifications yet',
@@ -349,6 +344,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
                         .collection('items')
                         .doc(notifId)
                         .update({'read': true});
+
                     _handleTap(context, type, careerId, blogId);
                   },
                   child: AnimatedContainer(
@@ -435,7 +431,11 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
   }
 
   void _handleTap(
-      BuildContext context, String type, String careerId, String blogId) {
+    BuildContext context,
+    String type,
+    String careerId,
+    String blogId,
+  ) {
     if (type == 'edit_career' && careerId.isNotEmpty) {
       Navigator.pushNamed(context, '/edit_career', arguments: careerId);
     } else if (type == 'career_update' && careerId.isNotEmpty) {
@@ -446,12 +446,13 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
       Navigator.pushNamed(context, '/feedback');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No action available for this notification")),
+        const SnackBar(
+          content: Text("No action available for this notification"),
+        ),
       );
     }
   }
 }
-
 
 class NotiAdminApi {
   static Future<void> sendCareerUpdateToFavoriters({
@@ -460,7 +461,6 @@ class NotiAdminApi {
     required String careerTitle,
     String fromName = 'Admin',
   }) async {
-    // 1) (tuỳ chọn) ghi activity chung (nếu bạn muốn một bảng lịch sử hệ thống)
     await _addCareerActivity(
       careerId: careerId,
       type: 'Career_Update',
@@ -468,7 +468,6 @@ class NotiAdminApi {
       body: '$careerTitle has been Added/Updated',
     );
 
-    // 2) Fan-out vào Notifications của từng user có favorites chứa careerId
     await _fanout(
       careerId: careerId,
       notiTitle: 'Update Career',
@@ -478,15 +477,15 @@ class NotiAdminApi {
       fromName: fromName,
     );
   }
-  /// Gửi noti tới tất cả admin khi có feedback mới
+
   static Future<void> sendFeedbackToAdmins({
     required String userId,
     required String content,
   }) async {
     final fs = FirebaseFirestore.instance;
 
-    // Tìm tất cả user có Tier = admin
-    final q = await fs.collection('Users')
+    final q = await fs
+        .collection('Users')
         .where('Tier', isEqualTo: 'admin')
         .get();
 
@@ -495,14 +494,17 @@ class NotiAdminApi {
     final batch = fs.batch();
     for (final u in q.docs) {
       final adminUid = u.id;
-      final ref = fs.collection('Notifications')
+      final ref = fs
+          .collection('Notifications')
           .doc(adminUid)
           .collection('items')
           .doc();
 
       batch.set(ref, {
         'title': 'New Feedback',
-        'body': content.length > 50 ? '${content.substring(0, 50)}...' : content,
+        'body': content.length > 50
+            ? '${content.substring(0, 50)}...'
+            : content,
         'type': 'feedback',
         'fromUserId': userId,
         'createdAt': FieldValue.serverTimestamp(),
@@ -519,7 +521,11 @@ class NotiAdminApi {
     String fromName = 'Admin',
   }) async {
     final fs = FirebaseFirestore.instance;
-    final ref = fs.collection('Notifications').doc(toUserId).collection('items').doc();
+    final ref = fs
+        .collection('Notifications')
+        .doc(toUserId)
+        .collection('items')
+        .doc();
 
     await ref.set({
       'title': 'Respond to feedback',
@@ -531,7 +537,6 @@ class NotiAdminApi {
     });
   }
 
-  /// Gọi sau khi ADMIN tạo blog liên quan
   static Future<void> sendBlogToFavoriters({
     required String adminUid,
     required String careerId,
@@ -539,7 +544,6 @@ class NotiAdminApi {
     String fromName = 'Admin',
     String? blogId,
   }) async {
-    // 1) (tuỳ chọn) activity
     await _addCareerActivity(
       careerId: careerId,
       type: 'blog',
@@ -547,7 +551,6 @@ class NotiAdminApi {
       body: blogTitle,
     );
 
-    // 2) Fan-out
     await _fanout(
       careerId: careerId,
       notiTitle: 'New Blog',
@@ -559,7 +562,6 @@ class NotiAdminApi {
     );
   }
 
-  /// ================== Helpers ==================
   static Future<void> _addCareerActivity({
     required String careerId,
     required String type,
@@ -585,8 +587,8 @@ class NotiAdminApi {
     Map<String, String>? extraData,
   }) async {
     final fs = FirebaseFirestore.instance;
-    // Tìm tất cả user đã yêu thích careerId
-    final q = await fs.collection('Users')
+    final q = await fs
+        .collection('Users')
         .where('favorites', arrayContains: careerId)
         .get();
 
@@ -595,7 +597,11 @@ class NotiAdminApi {
     final batch = fs.batch();
     for (final u in q.docs) {
       final toUid = u.id;
-      final ref = fs.collection('Notifications').doc(toUid).collection('items').doc();
+      final ref = fs
+          .collection('Notifications')
+          .doc(toUid)
+          .collection('items')
+          .doc();
       batch.set(ref, {
         'title': notiTitle,
         'body': notiBody,
@@ -609,6 +615,7 @@ class NotiAdminApi {
         'read': false,
         if (extraData != null) ...extraData,
       });
+      print("Creating noti for $toUid: read=false");
     }
     await batch.commit();
   }

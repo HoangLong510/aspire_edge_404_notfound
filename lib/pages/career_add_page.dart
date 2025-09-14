@@ -107,7 +107,7 @@ class _CareerAddPageState extends State<CareerAddPage> {
         careerTitle: title,
       );
     } else {
-      careerId = title.toLowerCase().replaceAll(RegExp(r'\s+'), '_'); // slug
+      careerId = title.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
       await fs
           .collection("CareerBank")
           .doc(careerId)

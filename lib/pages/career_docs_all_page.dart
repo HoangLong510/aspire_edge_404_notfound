@@ -286,9 +286,6 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                 if (docs.isEmpty) {
                   return const Center(child: Text("No documents match filter"));
                 }
-
-                // ... giữ nguyên phần import và class CareerDocsAllPage
-
                 return ListView.builder(
                   itemCount: docs.length,
                   itemBuilder: (ctx, i) {
@@ -302,7 +299,7 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
 
                     final progress = _progressMap[filename];
 
-                    // chọn màu chip
+
                     final Color chipColor = type == "pdf" ? Colors.red : Colors.orange;
 
                     return Card(
@@ -377,7 +374,6 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            // Gọn gàng: nút nằm trong Row, không chiếm nguyên dòng
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [

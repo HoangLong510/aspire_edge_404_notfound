@@ -1,5 +1,6 @@
 import 'package:aspire_edge_404_notfound/pages/career_doc_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'career_path_add_page.dart';
@@ -62,13 +63,11 @@ class _PathCard extends StatelessWidget {
     required this.path,
     required this.isCurrent,
     required this.isAdmin,
-    required this.onDelete,
   });
 
   final DocumentSnapshot path;
   final bool isCurrent;
   final bool isAdmin;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -116,8 +115,8 @@ class _PathCard extends StatelessWidget {
                 ),
                 if (isAdmin)
                   IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                    tooltip: "Edit",
+                    icon: const Icon(Icons.add, color: Colors.blueAccent),
+                    tooltip: "Add",
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -130,11 +129,6 @@ class _PathCard extends StatelessWidget {
                       );
                     },
                   ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  tooltip: "Delete",
-                  onPressed: onDelete,
-                ),
               ],
             ),
 
@@ -218,42 +212,60 @@ class _PathCard extends StatelessWidget {
   }
 }
 
-
-
-class CareerPathPage extends StatelessWidget {
+class CareerPathPage extends StatefulWidget {
   final String careerId;
   final bool isAdmin;
-  final String? currentPathId;
 
   const CareerPathPage({
     super.key,
     required this.careerId,
     this.isAdmin = false,
-    this.currentPathId,
   });
 
+  @override
+  State<CareerPathPage> createState() => _CareerPathPageState();
+}
+
+class _CareerPathPageState extends State<CareerPathPage> {
+  String? _currentPathId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserCareerPath();
+  }
+
+  Future<void> _loadUserCareerPath() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final userDoc =
+    await FirebaseFirestore.instance.collection("Users").doc(user.uid).get();
+
+    if (userDoc.exists) {
+      setState(() {
+        _currentPathId = userDoc.data()?["CareerPathId"];
+      });
+    }
+  }
+
   Future<void> _deletePath(String careerId, String id) async {
-    final ref = FirebaseFirestore.instance
+    await FirebaseFirestore.instance
         .collection("CareerBank")
         .doc(careerId)
-        .collection("CareerPaths");
-
-    await ref.doc(id).delete();
+        .collection("CareerPaths")
+        .doc(id)
+        .delete();
   }
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme
-        .of(context)
-        .primaryColor;
+    final primary = Theme.of(context).primaryColor;
 
     List<String> _parseSkills(dynamic raw) {
       if (raw == null) return [];
       if (raw is List) {
-        return raw
-            .map((e) => e?.toString().trim() ?? "")
-            .where((e) => e.isNotEmpty)
-            .toList();
+        return raw.map((e) => e?.toString().trim() ?? "").where((e) => e.isNotEmpty).toList();
       }
       return raw
           .toString()
@@ -267,10 +279,7 @@ class CareerPathPage extends StatelessWidget {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Theme
-              .of(context)
-              .colorScheme
-              .surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: primary.withOpacity(0.18)),
           boxShadow: [
@@ -299,37 +308,25 @@ class CareerPathPage extends StatelessWidget {
                 children: [
                   Text(
                     "Career Roadmap",
-                    style: Theme
-                        .of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Milestones with key skills for each stage",
-                    style: Theme
-                        .of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
-                      color:
-                      Theme
-                          .of(context)
-                          .colorScheme
-                          .onSurfaceVariant,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            if (isAdmin)
+            if (widget.isAdmin)
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CareerPathAddPage(careerId: careerId),
+                      builder: (_) => CareerPathAddPage(careerId: widget.careerId),
                     ),
                   );
                 },
@@ -338,297 +335,13 @@ class CareerPathPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
               ),
           ],
         ),
-      );
-    }
-
-    Widget _levelBadge(BuildContext context, String text,
-        {bool isCurrent = false}) {
-      final primary = Theme
-          .of(context)
-          .primaryColor;
-      return AnimatedScale(
-        duration: const Duration(milliseconds: 400),
-        scale: 1,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: isCurrent
-                      ? [primary.withOpacity(0.6), primary.withOpacity(0.3)]
-                      : [primary.withOpacity(0.28), primary.withOpacity(0.10)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: isCurrent ? primary : primary.withOpacity(0.35),
-                  width: isCurrent ? 2.5 : 1.6,
-                ),
-              ),
-            ),
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: isCurrent ? Colors.amber : primary,
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-
-    Widget _railConnector(BuildContext context) {
-      final primary = Theme
-          .of(context)
-          .primaryColor;
-      return Column(
-        children: [
-          Container(
-            width: 2.6,
-            height: 14,
-            decoration: BoxDecoration(
-              color: primary.withOpacity(0.28),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Icon(Icons.arrow_downward_rounded,
-              size: 22, color: primary.withOpacity(0.85)),
-          Container(
-            width: 2.6,
-            height: 14,
-            decoration: BoxDecoration(
-              color: primary.withOpacity(0.28),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ],
-      );
-    }
-
-    Widget _salaryChip(BuildContext context, String value) {
-      final primary = Theme
-          .of(context)
-          .primaryColor;
-      final txt = value.isEmpty ? "—" : value;
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: primary.withOpacity(0.10),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: primary.withOpacity(0.24)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.attach_money, size: 18, color: primary),
-            const SizedBox(width: 6),
-            Text(
-              txt,
-              style: Theme
-                  .of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-      );
-    }
-
-    Widget _skillsChips(BuildContext context, List<String> skills) {
-      final primary = Theme
-          .of(context)
-          .primaryColor;
-      if (skills.isEmpty) return const SizedBox.shrink();
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.tips_and_updates_outlined,
-                  size: 18, color: primary),
-              const SizedBox(width: 8),
-              Text(
-                "Key Skills",
-                style: Theme
-                    .of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: skills
-                .map(
-                  (s) =>
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 400),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: primary.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: primary.withOpacity(0.22)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_circle_outline, size: 16),
-                        const SizedBox(width: 6),
-                        Text(s),
-                      ],
-                    ),
-                  ),
-            )
-                .toList(),
-          ),
-        ],
-      );
-    }
-
-    Widget _pathCard({
-      required BuildContext context,
-      required DocumentSnapshot path,
-      required bool isLast,
-    }) {
-      final primary = Theme
-          .of(context)
-          .primaryColor;
-      final level = path['Level_Order'].toString();
-      final name = (path['Level_Name'] ?? '').toString();
-      final salary = (path['Salary_Range'] ?? '').toString();
-      final desc = (path['Description'] ?? '').toString();
-      final skills = _parseSkills(
-        path.data() is Map ? (path.data() as Map)['Skills'] : null,
-      );
-
-      final isCurrent = (currentPathId == path.id);
-
-      final content = AnimatedOpacity(
-        opacity: 1,
-        duration: const Duration(milliseconds: 500),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme
-                .of(context)
-                .colorScheme
-                .surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isCurrent ? primary : primary.withOpacity(0.20),
-              width: isCurrent ? 2.2 : 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: primary.withOpacity(0.07),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        name.isEmpty ? "Untitled Level" : name,
-                        style: Theme
-                            .of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(
-                          fontWeight: isCurrent
-                              ? FontWeight.w900
-                              : FontWeight.w700,
-                          color: isCurrent ? primary : null,
-                        ),
-                      ),
-                    ),
-                    if (isAdmin)
-                      IconButton(
-                        tooltip: "Delete",
-                        icon: const Icon(Icons.delete_outline,
-                            color: Colors.redAccent),
-                        onPressed: () => _deletePath(careerId, path.id),
-                      ),
-                  ],
-                ),
-
-                if (isCurrent) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    "👉 Bạn đang ở đây",
-                    style: TextStyle(
-                      color: primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 8),
-                _salaryChip(context, salary),
-
-                const SizedBox(height: 10),
-                Text(
-                  desc.isEmpty ? "—" : desc,
-                  style: Theme
-                      .of(context)
-                      .textTheme
-                      .bodyMedium,
-                ),
-
-                _skillsChips(context, skills),
-              ],
-            ),
-          ),
-        ),
-      );
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              const SizedBox(height: 6),
-              _levelBadge(context, level, isCurrent: isCurrent),
-              if (!isLast) ...[
-                const SizedBox(height: 6),
-                _railConnector(context),
-              ],
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(child: content),
-        ],
       );
     }
 
@@ -661,10 +374,8 @@ class CareerPathPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
                 foregroundColor: Colors.white,
-                padding:
-                const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 2,
               ),
             ),
@@ -683,7 +394,7 @@ class CareerPathPage extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection("CareerBank")
-            .doc(careerId)
+            .doc(widget.careerId)
             .collection("CareerPaths")
             .orderBy("Level_Order")
             .snapshots(),
@@ -723,9 +434,7 @@ class CareerPathPage extends StatelessWidget {
                             "Add levels to build this career roadmap.",
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -736,6 +445,7 @@ class CareerPathPage extends StatelessWidget {
                       final path = paths[index];
                       final isFirst = index == 0;
                       final isLast = index == paths.length - 1;
+                      final isCurrent = (path.id == _currentPathId);
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 18),
@@ -743,21 +453,19 @@ class CareerPathPage extends StatelessWidget {
                           isFirst: isFirst,
                           isLast: isLast,
                           index: index,
-                          isCurrent: (currentPathId == path.id),
+                          isCurrent: isCurrent,
                           primary: primary,
                           child: _PathCard(
                             path: path,
-                            isCurrent: (currentPathId == path.id),
-                            isAdmin: isAdmin,
-                            onDelete: () => _deletePath(careerId, path.id),
+                            isCurrent: isCurrent,
+                            isAdmin: widget.isAdmin,
                           ),
                         ),
                       );
                     }),
 
                   const SizedBox(height: 28),
-
-                  _docsButton(careerId, primary),
+                  _docsButton(widget.careerId, primary),
                 ],
               ),
             ),
@@ -765,7 +473,5 @@ class CareerPathPage extends StatelessWidget {
         },
       ),
     );
-
-
   }
 }
