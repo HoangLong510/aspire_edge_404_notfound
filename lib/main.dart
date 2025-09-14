@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:aspire_edge_404_notfound/layouts/main_layout.dart';
 import 'package:aspire_edge_404_notfound/pages/about_us_page.dart';
-import 'package:aspire_edge_404_notfound/pages/achievements_slider_page.dart';
 import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
 import 'package:aspire_edge_404_notfound/pages/answer_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_detail_page.dart';
@@ -10,7 +9,6 @@ import 'package:aspire_edge_404_notfound/pages/career_docs_all_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
-import 'package:aspire_edge_404_notfound/pages/coaching_tools_page.dart';
 import 'package:aspire_edge_404_notfound/pages/contact/contact_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/create_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/edit_quiz_page.dart';
@@ -27,7 +25,6 @@ import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/pages/profile_page.dart';
 import 'package:aspire_edge_404_notfound/pages/quiz_management_page.dart';
 import 'package:aspire_edge_404_notfound/pages/register_page.dart';
-import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/add_story_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/admin_stories_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/personal_stories_page.dart';
@@ -158,9 +155,6 @@ class _MyAppState extends State<MyApp> {
         '/admin_panel': (context) =>
             widget.withLayout(const AdminPanelPage(), '/admin_panel'),
 
-        // Tools & resources
-        '/coaching_tools': (context) =>
-            widget.withLayout(const CoachingToolsPage(), '/coaching_tools'),
         '/resources_hub': (context) =>
             widget.withLayout(const CareerDocsAllPage(), '/resources_hub'),
         '/my_stories': (context) =>
@@ -187,12 +181,6 @@ class _MyAppState extends State<MyApp> {
             widget.withLayout(const AboutUsPage(), '/about_us'),
 
         // Achievements
-        '/achievements': (context) => const AchievementsSliderPage(),
-        '/seed_achievements': (context) => widget.withLayout(
-          const SeedAchievementsPage(),
-          '/seed_achievements',
-        ),
-
         // Answer quiz page (standalone route)
         '/answer_quiz': (context) => MainLayout(
           body: const AnswerQuizPage(),
