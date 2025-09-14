@@ -24,11 +24,9 @@ class _CareerManagePageState extends State<CareerManagePage> {
 
   final TextEditingController _searchTitleCtrl = TextEditingController();
 
-  // Favorites
   Set<String> _favorites = {};
   StreamSubscription<DocumentSnapshot>? _userSub;
 
-  // ⭐ Lọc theo IndustryId từ config (it/health/art/science)
   String? _selectedIndustryId;
 
   @override
@@ -37,7 +35,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
     _loadUserTier();
     _searchTitleCtrl.addListener(() => setState(() {}));
 
-    // Nhận filter từ route arguments (hỗ trợ alias: tech/health/art/science)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments;
 
@@ -55,7 +52,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
         desiredName = args.trim().toLowerCase();
       }
 
-      // alias cho tên
       final alias = {
         'tech': 'it',
         'it': 'it',
@@ -67,7 +63,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
 
       String? resolvedId;
 
-      // Ưu tiên id truyền trực tiếp
       if (desiredIdFromArgs != null && desiredIdFromArgs.isNotEmpty) {
         resolvedId = desiredIdFromArgs;
       } else if (desiredName != null && desiredName.isNotEmpty) {
@@ -75,12 +70,10 @@ class _CareerManagePageState extends State<CareerManagePage> {
         if (byAlias != null) {
           resolvedId = byAlias;
         } else {
-          // thử resolve theo tên industry “đầy đủ”
           resolvedId = industryByName(desiredName)?.id;
         }
       }
 
-      // Chỉ nhận id nếu tồn tại trong danh sách INDUSTRIES
       final validIds = INDUSTRIES.map((e) => e.id).toSet();
       _selectedIndustryId = (resolvedId != null && validIds.contains(resolvedId))
           ? resolvedId
@@ -88,7 +81,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
 
       setState(() {});
 
-      // nghe favorites realtime
       final u = _auth.currentUser;
       if (u != null) {
         _userSub = _firestore
@@ -136,9 +128,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
     }
   }
 
-  void _deleteCareer(String id) async {
-    await _firestore.collection("CareerBank").doc(id).delete();
-  }
 
   String _initials(String s) {
     final parts = s.trim().split(RegExp(r"\s+"));
@@ -185,7 +174,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
 
                 final careers = snapshot.data!.docs;
 
-                // Lọc theo Title + IndustryId (có fallback legacy "Industry" string)
                 final q = _searchTitleCtrl.text.trim().toLowerCase();
                 final visible = careers.where((doc) {
                   final data =
@@ -196,7 +184,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                   final id = (data['IndustryId'] ?? '').toString();
                   final legacy = (data['Industry'] ?? '').toString();
 
-                  // lấy id để so filter; nếu thiếu thì map từ legacy name
                   final mappedFromLegacy =
                       industryByName(legacy)?.id ?? '';
                   final idForFilter =
@@ -255,7 +242,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                       const BoxConstraints(maxWidth: 1100),
                       child: Column(
                         children: [
-                          // Header card
                           Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
@@ -322,7 +308,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                       ),
                                       const SizedBox(height: 10),
 
-                                      // Search + Industry filter
                                       LayoutBuilder(
                                         builder: (ctx, cst) {
                                           final narrow =
@@ -330,7 +315,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                   620;
 
                                           Widget industryFilter() {
-                                            // đảm bảo unique theo id và sort order
                                             final mapById = <String, IndustryDef>{};
                                             for (final def in INDUSTRIES) {
                                               mapById[def.id] = def;
@@ -376,7 +360,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                             String>(
                                                           isExpanded:
                                                           true,
-                                                          // value hợp lệ hoặc null (All)
                                                           value: (_selectedIndustryId != null &&
                                                               validIds.contains(
                                                                   _selectedIndustryId))
@@ -452,7 +435,7 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                             decoration:
                                             InputDecoration(
                                               hintText:
-                                              "Tìm theo Title…",
+                                              "Search by Title…",
                                               prefixIcon:
                                               const Icon(Icons
                                                   .search),
@@ -534,44 +517,16 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                     ],
                                   ),
                                 ),
-                                Container(
-                                  padding:
-                                  const EdgeInsets
-                                      .symmetric(
-                                      horizontal: 10,
-                                      vertical: 6),
-                                  decoration: BoxDecoration(
-                                    borderRadius:
-                                    BorderRadius.circular(
-                                        999),
-                                    border: Border.all(
-                                      color: primary
-                                          .withOpacity(0.25),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "${visible.length} items",
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                      fontWeight:
-                                      FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
 
                           const SizedBox(height: 16),
 
-                          // List / Grid responsive
                           LayoutBuilder(
                             builder: (context, cst) {
                               final useGrid = isWide;
                               if (!useGrid) {
-                                // List (mobile)
                                 return ListView.separated(
                                   physics:
                                   const NeverScrollableScrollPhysics(),
@@ -587,7 +542,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                         dynamic>? ??
                                         {};
 
-                                    // ---- Fields an toàn (qua data()) ----
                                     final title =
                                     (data['Title'] ?? '')
                                         .toString()
@@ -597,21 +551,20 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                         '')
                                         .toString();
 
-                                    // Hiển thị industry (ưu tiên name → id → legacy)
                                     final id =
                                     (data['IndustryId'] ??
                                         '')
                                         .toString()
-                                        .trim(); // it/health/art/science
+                                        .trim();
                                     final name =
                                     (data['IndustryName'] ??
                                         '')
                                         .toString()
-                                        .trim(); // tên hiển thị
+                                        .trim();
                                     final legacy =
                                     (data['Industry'] ?? '')
                                         .toString()
-                                        .trim(); // dữ liệu cũ (string)
+                                        .trim();
 
                                     final IndustryDef resolved =
                                     name.isNotEmpty
@@ -628,7 +581,7 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                     (resolved.name
                                         .isNotEmpty)
                                         ? resolved.name
-                                        : legacy; // fallback dữ liệu cũ
+                                        : legacy;
 
                                     final isFav = _favorites
                                         .contains(career.id);
@@ -685,7 +638,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                           CrossAxisAlignment
                                               .start,
                                           children: [
-                                            // Avatar chữ cái đầu
                                             CircleAvatar(
                                               radius: 26,
                                               backgroundColor:
@@ -706,7 +658,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                             const SizedBox(
                                                 width: 12),
 
-                                            // Nội dung
                                             Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
@@ -715,7 +666,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                 children: [
                                                   Row(
                                                     children: [
-                                                      // Title
                                                       Expanded(
                                                         child:
                                                         Text(
@@ -735,7 +685,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                         ),
                                                       ),
 
-                                                      // Hành động (Admin | User)
                                                       if (_isAdmin)
                                                         ConstrainedBox(
                                                           constraints: const BoxConstraints(maxWidth: 104),
@@ -754,15 +703,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                                   );
                                                                 },
                                                               ),
-                                                              IconButton(
-                                                                tooltip: "Delete",
-                                                                icon: const Icon(
-                                                                  Icons.delete_outline,
-                                                                  size: 20,
-                                                                  color: Colors.redAccent,
-                                                                ),
-                                                                onPressed: () => _deleteCareer(career.id),
-                                                              ),
                                                             ],
                                                           ),
                                                         )
@@ -780,7 +720,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
 
                                                   const SizedBox(height: 6),
 
-                                                  // Chip Industry (ẩn nếu trống)
                                                   if (displayIndustry
                                                       .isNotEmpty)
                                                     Wrap(
@@ -796,7 +735,7 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                             mainAxisSize: MainAxisSize.min,
                                                             children: [
                                                               Icon(
-                                                                resolved.icon, // icon theo enum nếu resolve được
+                                                                resolved.icon,
                                                                 size: 16,
                                                                 color: primary,
                                                               ),
@@ -813,7 +752,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                       ],
                                                     ),
 
-                                                  // Mô tả (2 dòng)
                                                   if (desc.isNotEmpty) ...[
                                                     const SizedBox(height: 8),
                                                     Text(
@@ -837,7 +775,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                 );
                               }
 
-                              // Grid (desktop)
                               final crossCount =
                               constraints.maxWidth >= 1200
                                   ? 3
@@ -865,20 +802,19 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                       .toString()
                                       .trim();
 
-                                  // Lấy industry theo enum mới + fallback dữ liệu cũ
                                   final id =
                                   (data['IndustryId'] ?? '')
                                       .toString()
-                                      .trim(); // it/health/art/science
+                                      .trim();
                                   final name =
                                   (data['IndustryName'] ??
                                       '')
                                       .toString()
-                                      .trim(); // tên hiển thị
+                                      .trim();
                                   final legacy =
                                   (data['Industry'] ?? '')
                                       .toString()
-                                      .trim(); // dữ liệu cũ (string)
+                                      .trim();
 
                                   final displayIndustry = name
                                       .isNotEmpty
@@ -1004,11 +940,6 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                                                   );
                                                                 },
                                                               ),
-                                                              IconButton(
-                                                                tooltip: "Delete",
-                                                                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-                                                                onPressed: () => _deleteCareer(career.id),
-                                                              ),
                                                             ],
                                                           ),
                                                         )
@@ -1085,7 +1016,7 @@ class _CareerManagePageState extends State<CareerManagePage> {
             ),
           );
         },
-        label: const Text("Thêm nghề"),
+        label: const Text("Add Career"),
         icon: const Icon(Icons.add),
         backgroundColor: Theme.of(context).primaryColor,
       )

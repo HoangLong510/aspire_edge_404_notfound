@@ -42,6 +42,7 @@ class NotificationsListener extends StatefulWidget {
 
 class _NotificationsListenerState extends State<NotificationsListener> {
   StreamSubscription<QuerySnapshot>? _sub;
+  final Set<String> _shownIds = {};
 
   @override
   void initState() {
@@ -56,10 +57,25 @@ class _NotificationsListenerState extends State<NotificationsListener> {
         .listen((snap) {
       for (final c in snap.docChanges) {
         if (c.type == DocumentChangeType.added) {
+          final id = c.doc.id;
+          if (_shownIds.contains(id)) continue;
+          _shownIds.add(id);
+
           final m = c.doc.data() as Map<String, dynamic>? ?? {};
           final title = (m['title'] ?? 'Thông báo').toString();
-          final body  = (m['body']  ?? '').toString();
-          LocalNoti.show(title, body);
+          final body  = (m['body'] ?? '').toString();
+          final read  = m['read'] == true;
+
+          if (!read) {
+            LocalNoti.show(title, body);
+
+            FirebaseFirestore.instance
+                .collection('Notifications')
+                .doc(widget.uid)
+                .collection('items')
+                .doc(id)
+                .update({'read': true});
+          }
         }
       }
     });
@@ -75,10 +91,6 @@ class _NotificationsListenerState extends State<NotificationsListener> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// =======================================================================
-///  NotificationBell: icon chuông + badge số lượng chưa đọc (unread)
-///  - Bấm vào mở NotificationsInboxPage và mark all read.
-/// =======================================================================
 class NotificationBell extends StatelessWidget {
   final String uid;
   const NotificationBell({super.key, required this.uid});
@@ -160,10 +172,6 @@ class NotificationBell extends StatelessWidget {
     await batch.commit();
   }
 }
-
-/// =======================================================================
-///  NotificationsInboxPage: danh sách thông báo của user (realtime)
-/// =======================================================================
 
 class NotificationsInboxPage extends StatefulWidget {
   final String uid;
@@ -254,7 +262,6 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
             );
           }
 
-          // Apply filter nếu ở tab "Unread"
           if (_tabCtrl.index == 1) {
             docs = docs.where((d) => d['read'] != true).toList();
           }
@@ -276,7 +283,6 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
               final t = (m['createdAt'] as Timestamp?)?.toDate();
               final read = m['read'] == true;
 
-              // icon + màu
               IconData icon;
               Color iconColor;
               switch (type) {
@@ -447,13 +453,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
 }
 
 
-/// =====================================================================
-///  NotiAdminApi: HÀM GỬI THÔNG BÁO THEO NGHỀ YÊU THÍCH (FAN-OUT, NO SERVER)
-///  - Lưu lịch sử noti vào Notifications/{uid}/items/{notifId}
-///  - Tùy biến field sender/receiver/type/careerId…
-/// =====================================================================
 class NotiAdminApi {
-  /// Gọi sau khi ADMIN lưu/cập nhật nghề (CareerBank/{careerId})
   static Future<void> sendCareerUpdateToFavoriters({
     required String adminUid,
     required String careerId,
@@ -463,16 +463,16 @@ class NotiAdminApi {
     // 1) (tuỳ chọn) ghi activity chung (nếu bạn muốn một bảng lịch sử hệ thống)
     await _addCareerActivity(
       careerId: careerId,
-      type: 'career_update',
-      title: 'Cập nhật nghề',
-      body: '$careerTitle đã được thêm/cập nhật',
+      type: 'Career_Update',
+      title: 'Update Career',
+      body: '$careerTitle has been Added/Updated',
     );
 
     // 2) Fan-out vào Notifications của từng user có favorites chứa careerId
     await _fanout(
       careerId: careerId,
-      notiTitle: 'Cập nhật nghề',
-      notiBody: '$careerTitle vừa được cập nhật',
+      notiTitle: 'Update Career',
+      notiBody: '$careerTitle just Updated',
       type: 'career_update',
       adminUid: adminUid,
       fromName: fromName,
@@ -501,7 +501,7 @@ class NotiAdminApi {
           .doc();
 
       batch.set(ref, {
-        'title': 'Feedback mới',
+        'title': 'New Feedback',
         'body': content.length > 50 ? '${content.substring(0, 50)}...' : content,
         'type': 'feedback',
         'fromUserId': userId,
@@ -522,7 +522,7 @@ class NotiAdminApi {
     final ref = fs.collection('Notifications').doc(toUserId).collection('items').doc();
 
     await ref.set({
-      'title': 'Phản hồi feedback',
+      'title': 'Respond to feedback',
       'body': replyMsg,
       'type': 'reply',
       'fromName': fromName,
@@ -543,14 +543,14 @@ class NotiAdminApi {
     await _addCareerActivity(
       careerId: careerId,
       type: 'blog',
-      title: 'Blog mới',
+      title: 'New Blog',
       body: blogTitle,
     );
 
     // 2) Fan-out
     await _fanout(
       careerId: careerId,
-      notiTitle: 'Blog mới',
+      notiTitle: 'New Blog',
       notiBody: blogTitle,
       type: 'blog',
       adminUid: adminUid,
@@ -602,6 +602,7 @@ class NotiAdminApi {
         'type': type,
         'careerId': careerId,
         'fromUserId': adminUid,
+
         'fromName': fromName,
         'toUserId': toUid,
         'createdAt': FieldValue.serverTimestamp(),

@@ -1,7 +1,14 @@
+import 'dart:io';
+import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:open_file/open_file.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../config/industries.dart'; // chứa INDUSTRIES + IndustryDef
+import 'package:video_player/video_player.dart';
+import '../../config/industries.dart';
 
 class CareerDocsAllPage extends StatefulWidget {
   const CareerDocsAllPage({super.key});
@@ -12,14 +19,81 @@ class CareerDocsAllPage extends StatefulWidget {
 
 class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
   final _searchCtrl = TextEditingController();
-  String? _selectedIndustryId; // 'it' | 'health' | ...
+  String? _selectedIndustryId;
   String? _selectedCareerId;
-  String? _selectedType; // pdf/mp4/null
+  String? _selectedType;
+
+  final Map<String, int> _progressMap = {};
+  final Dio _dio = Dio();
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkPermission() async {
+    if (Platform.isAndroid) {
+      if (await Permission.storage.isDenied) {
+        await Permission.storage.request();
+      }
+      if (await Permission.notification.isDenied) {
+        await Permission.notification.request();
+      }
+    }
+  }
+
+  Future<void> _downloadFile(
+      BuildContext context, String url, String filename) async {
+    await _checkPermission();
+
+    Directory dir;
+    if (Platform.isAndroid) {
+      dir = (await getExternalStorageDirectory())!;
+    } else {
+      dir = await getApplicationDocumentsDirectory();
+    }
+
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    final filePath = "${dir.path}/$filename";
+
+    try {
+      await _dio.download(
+        url,
+        filePath,
+        onReceiveProgress: (count, total) {
+          if (total > 0) {
+            final progress = (count / total * 100).toInt();
+            setState(() {
+              _progressMap[filename] = progress;
+            });
+          }
+        },
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Downloaded $filename")),
+      );
+
+      await OpenFile.open(filePath);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Download failed: $e")),
+      );
+    }
+  }
+
+  void _openVideo(BuildContext context, String url, String title, String desc) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            VideoPlayerPage(videoUrl: url, title: title, description: desc),
+      ),
+    );
   }
 
   Future<void> _openUrl(String url) async {
@@ -35,10 +109,19 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Resource Hub – Tài liệu tất cả nghề"),
+        centerTitle: true,
+        elevation: 2,
+        title: const Text(
+          "Resource Hub – All Careers",
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, size: 22),
+            tooltip: "Reset filters",
             onPressed: () {
               setState(() {
                 _selectedIndustryId = null;
@@ -47,12 +130,11 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                 _searchCtrl.clear();
               });
             },
-          )
+          ),
         ],
       ),
       body: Column(
         children: [
-          // 🔍 Filter Section
           Card(
             margin: const EdgeInsets.all(12),
             elevation: 3,
@@ -63,11 +145,10 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Search
                   TextField(
                     controller: _searchCtrl,
                     decoration: InputDecoration(
-                      hintText: "Tìm theo tên tài liệu hoặc nghề...",
+                      hintText: "Search by document or career...",
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -76,8 +157,6 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
-
-                  // Industry Dropdown
                   DropdownButtonFormField<String>(
                     value: _selectedIndustryId,
                     isExpanded: true,
@@ -87,7 +166,7 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                     ),
                     items: [
                       const DropdownMenuItem<String>(
-                        value: null, // 👈 null để hiểu là "All"
+                        value: null,
                         child: Text("All Industries"),
                       ),
                       ...INDUSTRIES.map((ind) => DropdownMenuItem(
@@ -104,14 +183,11 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                     onChanged: (v) {
                       setState(() {
                         _selectedIndustryId = v;
-                        _selectedCareerId = null; // reset career khi đổi industry
+                        _selectedCareerId = null;
                       });
                     },
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Career Dropdown
                   if (_selectedIndustryId != null)
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
@@ -121,18 +197,14 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                       builder: (ctx, snap) {
                         if (!snap.hasData) return const SizedBox();
 
-                        print("=== CAREERS SNAPSHOT ===");
-                        for (var d in snap.data!.docs) {
-                          print("Career: ${d.id} => ${d.data()}");
-                        }
-                        print("========================");
-
                         final careers = snap.data!.docs
-                            .where((d) => (d.data() as Map<String, dynamic>)["IndustryId"] == _selectedIndustryId)
+                            .where((d) => (d.data() as Map<String, dynamic>)[
+                        "IndustryId"] ==
+                            _selectedIndustryId)
                             .toList();
 
                         if (careers.isEmpty) {
-                          return const Text("Không có career nào cho industry này");
+                          return const Text("No careers for this industry");
                         }
 
                         return DropdownButtonFormField<String>(
@@ -155,18 +227,15 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                         );
                       },
                     ),
-
                   if (_selectedIndustryId != null) const SizedBox(height: 16),
-
-                  // Type Dropdown
                   DropdownButtonFormField<String?>(
                     value: _selectedType,
                     decoration: const InputDecoration(
-                      labelText: "Loại",
+                      labelText: "Type",
                       border: OutlineInputBorder(),
                     ),
                     items: const [
-                      DropdownMenuItem(value: null, child: Text("Tất cả")),
+                      DropdownMenuItem(value: null, child: Text("All")),
                       DropdownMenuItem(value: "pdf", child: Text("PDF")),
                       DropdownMenuItem(value: "mp4", child: Text("Video")),
                     ],
@@ -176,24 +245,20 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
               ),
             ),
           ),
-
-          // 📄 Docs List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collectionGroup("Docs") // ✅ load all docs
-                  .snapshots(),
+              stream:
+              FirebaseFirestore.instance.collectionGroup("Docs").snapshots(),
               builder: (ctx, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("Chưa có tài liệu nào"));
+                  return const Center(child: Text("No resources found"));
                 }
 
                 final q = _searchCtrl.text.trim().toLowerCase();
 
-                // lọc dữ liệu trong Dart
                 final docs = snapshot.data!.docs.where((d) {
                   final data = d.data() as Map<String, dynamic>;
                   final title = (data['title'] ?? '').toString().toLowerCase();
@@ -219,111 +284,275 @@ class _CareerDocsAllPageState extends State<CareerDocsAllPage> {
                 }).toList();
 
                 if (docs.isEmpty) {
-                  return const Center(child: Text("Không tìm thấy tài liệu nào"));
+                  return const Center(child: Text("No documents match filter"));
                 }
+
+                // ... giữ nguyên phần import và class CareerDocsAllPage
 
                 return ListView.builder(
                   itemCount: docs.length,
                   itemBuilder: (ctx, i) {
                     final data = docs[i].data() as Map<String, dynamic>;
-                    final industry = industryById(data['industry']);
-                    final updatedAt =
-                    (data['updatedAt'] as Timestamp?)?.toDate();
+                    final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate();
+                    final type = (data['type'] ?? '').toString();
+                    final title = (data['title'] ?? '').toString();
+                    final desc = (data['description'] ?? '').toString();
+                    final url = (data['url'] ?? '').toString();
+                    final filename = type == "pdf" ? "$title.pdf" : "$title.mp4";
+
+                    final progress = _progressMap[filename];
+
+                    // chọn màu chip
+                    final Color chipColor = type == "pdf" ? Colors.red : Colors.orange;
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 4,
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Avatar icon
-                            CircleAvatar(
-                              backgroundColor: primary.withOpacity(0.1),
-                              child: Icon(
-                                data['type'] == 'mp4'
-                                    ? Icons.play_circle_fill
-                                    : Icons.picture_as_pdf,
-                                color: primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-
-                            // Nội dung chính
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    data['title'] ?? '',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  if ((data['careerTitle'] ?? '')
-                                      .toString()
-                                      .isNotEmpty)
-                                    Text("Nghề: ${data['careerTitle']}"),
-                                  if (industry != null &&
-                                      industry.id.isNotEmpty)
-                                    Text("Ngành: ${industry.name}"),
-                                  if ((data['description'] ?? '')
-                                      .toString()
-                                      .isNotEmpty)
-                                    Text(
-                                      data['description'],
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  if (updatedAt != null)
-                                    Text(
-                                      "Cập nhật: ${updatedAt.day}/${updatedAt.month}/${updatedAt.year}",
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                ],
-                              ),
-                            ),
-
-                            // Nút actions
-                            Wrap(
-                              direction: Axis.vertical,
-                              spacing: 6,
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: chipColor.withOpacity(0.1),
+                                  child: Icon(
+                                    type == 'mp4'
+                                        ? Icons.play_circle_fill
+                                        : Icons.picture_as_pdf,
+                                    color: chipColor,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      if (desc.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 2),
+                                          child: Text(
+                                            desc,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(fontSize: 13),
+                                          ),
+                                        ),
+                                      if (updatedAt != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 2),
+                                          child: Text(
+                                            "Updated: ${updatedAt.day}/${updatedAt.month}/${updatedAt.year}",
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
                                 Chip(
                                   label: Text(
-                                    (data['type'] ?? '').toUpperCase(),
+                                    type.toUpperCase(),
                                     style: const TextStyle(
-                                        fontSize: 12, color: Colors.white),
+                                        fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
-                                  backgroundColor: data['type'] == 'mp4'
-                                      ? Colors.orange
-                                      : Colors.red,
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.open_in_new),
-                                  onPressed: () =>
-                                      _openUrl(data['url'] ?? ''),
+                                  backgroundColor: chipColor,
+                                  labelStyle: const TextStyle(color: Colors.white),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 10),
+                            // Gọn gàng: nút nằm trong Row, không chiếm nguyên dòng
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (type == "pdf")
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      if (url.isNotEmpty) {
+                                        _downloadFile(context, url, filename);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.download, size: 18),
+                                    label: const Text("Download"),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: chipColor,
+                                    ),
+                                  ),
+                                if (type == "mp4")
+                                  TextButton.icon(
+                                    onPressed: () => _openVideo(context, url, title, desc),
+                                    icon: const Icon(Icons.play_arrow, size: 18),
+                                    label: const Text("Play"),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: chipColor,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (progress != null && progress < 100) ...[
+                              const SizedBox(height: 8),
+                              LinearProgressIndicator(
+                                value: progress / 100,
+                                color: chipColor,
+                                backgroundColor: Colors.grey.shade300,
+                              ),
+                              const SizedBox(height: 4),
+                              Text("Downloading: $progress%"),
+                            ],
                           ],
                         ),
                       ),
                     );
+
                   },
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class VideoPlayerPage extends StatefulWidget {
+  final String videoUrl;
+  final String title;
+  final String? description;
+
+  const VideoPlayerPage({
+    super.key,
+    required this.videoUrl,
+    required this.title,
+    this.description,
+  });
+
+  @override
+  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+}
+
+class _VideoPlayerPageState extends State<VideoPlayerPage> {
+  late VideoPlayerController _videoController;
+  ChewieController? _chewieController;
+
+  @override
+  void initState() {
+    super.initState();
+    _videoController = VideoPlayerController.network(widget.videoUrl)
+      ..initialize().then((_) {
+        _chewieController = ChewieController(
+          videoPlayerController: _videoController,
+          autoPlay: true,
+          looping: false,
+          allowFullScreen: true,
+          allowMuting: true,
+          showControls: true,
+        );
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _videoController.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openInYoutube() async {
+    final uri = Uri.parse(widget.videoUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not open video externally")),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: _chewieController != null &&
+                  _chewieController!.videoPlayerController.value.isInitialized
+                  ? Chewie(controller: _chewieController!)
+                  : const CircularProgressIndicator(),
+            ),
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (widget.description != null &&
+                              widget.description!.isNotEmpty)
+                            Text(
+                              widget.description!,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon:
+                      const Icon(Icons.open_in_new, color: Colors.white),
+                      onPressed: _openInYoutube,
+                      tooltip: "Open externally",
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -85,7 +85,7 @@ class _CareerAddPageState extends State<CareerAddPage> {
     final data = {
       "Title": title,
       "IndustryId": _selectedIndustryId,
-      "Industry": _selectedIndustryName, // 👈 giữ legacy cho an toàn
+      "Industry": _selectedIndustryName,
       "Description": _descController.text.trim(),
       "Skills": _skillsController.text.trim(),
       "Salary_Range": _salaryController.text.trim(),
@@ -93,36 +93,41 @@ class _CareerAddPageState extends State<CareerAddPage> {
       "updatedAt": FieldValue.serverTimestamp(),
     };
 
-    // Xác định careerId:
-    // - Nếu edit: dùng id cũ để giữ nguyên favorites của user
-    // - Nếu tạo mới: slug từ Title để dùng làm id (ổn định)
     String careerId;
     final isEditing = widget.career != null;
+
     if (isEditing) {
       careerId = widget.career!.id;
       await fs.collection("CareerBank").doc(careerId).update(data);
-    } else {
-      careerId = title.toLowerCase().replaceAll(RegExp(r'\s+'), '_'); // slug
-      await fs.collection("CareerBank").doc(careerId).set(data, SetOptions(merge: true));
-    }
 
-    // 🔔 Gửi thông báo tới tất cả user đã yêu thích careerId này
-    // (bắn cho cả tạo mới & cập nhật; nếu muốn chỉ bắn khi cập nhật, bạn check isEditing == true)
-    final adminUid = auth.currentUser?.uid ?? 'admin';
-    if (isEditing) {
+      final adminUid = auth.currentUser?.uid ?? 'admin';
       await NotiAdminApi.sendCareerUpdateToFavoriters(
         adminUid: adminUid,
         careerId: careerId,
         careerTitle: title,
       );
+    } else {
+      careerId = title.toLowerCase().replaceAll(RegExp(r'\s+'), '_'); // slug
+      await fs
+          .collection("CareerBank")
+          .doc(careerId)
+          .set(data, SetOptions(merge: true));
     }
+
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lưu nghề & gửi thông báo thành công")),
+        SnackBar(
+          content: Text(
+            isEditing
+                ? "Career updated successfully"
+                : "Career added successfully",
+          ),
+        ),
       );
     }
   }
+
 
 
   InputDecoration _decoration({
@@ -199,14 +204,11 @@ class _CareerAddPageState extends State<CareerAddPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.career != null;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? "Sửa nghề" : "Thêm nghề mới"),
         centerTitle: true,
       ),
-      // Thay thế nguyên khối body: ... bằng đoạn dưới
       body: LayoutBuilder(
         builder: (context, constraints) {
           final primary = Theme.of(context).primaryColor;
@@ -296,7 +298,9 @@ class _CareerAddPageState extends State<CareerAddPage> {
                 hint: "e.g., Software Engineer",
                 icon: Icons.title,
               ),
-              validator: (v) => v == null || v.isEmpty ? "Nhập tên nghề" : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? "Please enter the career title"
+                  : null,
               textInputAction: TextInputAction.next,
             ),
             gap(),
@@ -308,27 +312,30 @@ class _CareerAddPageState extends State<CareerAddPage> {
                 hint: "Select an industry",
                 icon: Icons.business_center_outlined,
               ),
-              items: ([
-                ...INDUSTRIES
-              ]..sort((a, b) => a.order.compareTo(b.order))).map((def) {
+              items: ([...INDUSTRIES]..sort((a, b) => a.order.compareTo(b.order)))
+                  .map((def) {
                 return DropdownMenuItem<String>(
                   value: def.id,
                   child: Row(
                     children: [
-                      Icon(def.icon, size: 18, color: Theme.of(context).primaryColor),
+                      Icon(def.icon,
+                          size: 18, color: Theme.of(context).primaryColor),
                       const SizedBox(width: 8),
-                      Flexible(child: Text(def.name, overflow: TextOverflow.ellipsis)),
+                      Flexible(
+                        child: Text(def.name, overflow: TextOverflow.ellipsis),
+                      ),
                     ],
                   ),
                 );
               }).toList(),
               onChanged: (v) {
                 setState(() {
-                  _selectedIndustryId   = v;
+                  _selectedIndustryId = v;
                   _selectedIndustryName = industryById(v)?.name;
                 });
               },
-              validator: (v) => (v == null || v.isEmpty) ? "Chọn Industry" : null,
+              validator: (v) =>
+              (v == null || v.isEmpty) ? "Please select an industry" : null,
             ),
             gap(18),
             sectionTitle("Skills & Salary", icon: Icons.tips_and_updates_outlined),
@@ -336,7 +343,7 @@ class _CareerAddPageState extends State<CareerAddPage> {
             TextFormField(
               controller: _skillsController,
               decoration: deco(
-                label: "Skills",
+                label: "Skills (optional)",
                 hint: "Comma-separated skills (e.g., Java, SQL, Problem Solving)",
                 icon: Icons.lightbulb_outline,
               ),
@@ -350,12 +357,17 @@ class _CareerAddPageState extends State<CareerAddPage> {
                 hint: "e.g., \$800 - \$1,200 / month",
                 icon: Icons.attach_money,
               ),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? "Please enter the salary range"
+                  : null,
               textInputAction: TextInputAction.next,
             ),
           ];
 
           final rightColumn = <Widget>[
-            sectionTitle("Description", icon: Icons.description_outlined, sub: "Short overview about this career"),
+            sectionTitle("Description",
+                icon: Icons.description_outlined,
+                sub: "Short overview about this career"),
             gap(10),
             TextFormField(
               controller: _descController,
@@ -365,6 +377,9 @@ class _CareerAddPageState extends State<CareerAddPage> {
                 icon: Icons.notes,
               ),
               maxLines: 7,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? "Please provide a description"
+                  : null,
             ),
             gap(18),
             sectionTitle("Education Path", icon: Icons.school_outlined),
@@ -377,11 +392,15 @@ class _CareerAddPageState extends State<CareerAddPage> {
                 icon: Icons.menu_book_outlined,
               ),
               maxLines: 5,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? "Please specify the education path"
+                  : null,
             ),
           ];
 
+
+
           return Container(
-            // nền nhẹ theo primaryColor
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -399,7 +418,6 @@ class _CareerAddPageState extends State<CareerAddPage> {
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: Column(
                     children: [
-                      // Card chính
                       Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
@@ -418,7 +436,6 @@ class _CareerAddPageState extends State<CareerAddPage> {
                           key: _formKey,
                           child: Column(
                             children: [
-                              // Header
                               Row(
                                 children: [
                                   Container(
@@ -461,7 +478,6 @@ class _CareerAddPageState extends State<CareerAddPage> {
                               Divider(height: 24, color: primary.withOpacity(0.18)),
                               const SizedBox(height: 6),
 
-                              // Grid form
                               if (isWide)
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,7 +506,6 @@ class _CareerAddPageState extends State<CareerAddPage> {
 
                               const SizedBox(height: 22),
 
-                              // Actions
                               Row(
                                 children: [
                                   Expanded(
@@ -528,7 +543,6 @@ class _CareerAddPageState extends State<CareerAddPage> {
                         ),
                       ),
 
-                      // Footer hint nhỏ
                       const SizedBox(height: 14),
                       Text(
                         "Tip: Separate multiple skills with commas. Keep descriptions short and scannable.",

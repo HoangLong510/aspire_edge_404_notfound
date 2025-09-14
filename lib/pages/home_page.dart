@@ -322,6 +322,15 @@ class HomePage extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
+          _InterestChip(
+            label: "Kinh doanh 📈",
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                "/industry_intro",
+                arguments: {"industry": "Healthcare"},
+              );
+            },
           Card(
             clipBehavior: Clip.antiAlias,
             shape:

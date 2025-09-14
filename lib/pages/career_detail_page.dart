@@ -58,23 +58,7 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        actions: [
-          if (_userTier == "admin")
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CareerAddPage(career: data),
-                  ),
-                );
-              },
-            )
-        ],
       ),
-      // Thay thế toàn bộ: body: Padding(...)
-// =============== NEW BODY (UI only, no logic change) ===============
       body: LayoutBuilder(
         builder: (context, constraints) {
           final primary = Theme.of(context).primaryColor;
@@ -197,7 +181,6 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: Column(
                     children: [
-                      // HEADER BANNER
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -216,7 +199,6 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Title + industry chip
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -252,7 +234,6 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
                             const SizedBox(height: 14),
                             Divider(height: 24, color: primary.withOpacity(0.18)),
 
-                            // Skills chips
                             if (skills.isNotEmpty) ...[
                               sectionHeader(Icons.tips_and_updates_outlined, "Skills",
                                   sub: "Key skills for this career"),
@@ -281,12 +262,10 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
 
                       const SizedBox(height: 18),
 
-                      // MAIN CONTENT GRID
                       if (isWide)
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Left: Description
                             Expanded(
                               flex: 6,
                               child: infoCard(
@@ -299,7 +278,6 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
                               ),
                             ),
                             const SizedBox(width: 18),
-                            // Right: Salary + Education (stacked)
                             Expanded(
                               flex: 4,
                               child: Column(
@@ -364,7 +342,6 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
 
                       const SizedBox(height: 22),
 
-                      // CTA: View Career Path
                       Row(
                         children: [
                           Expanded(
@@ -402,7 +379,6 @@ class _CareerDetailPageState extends State<CareerDetailPage> {
           );
         },
       ),
-// =============== END NEW BODY ===============
     );
   }
 }
