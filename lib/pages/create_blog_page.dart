@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -151,6 +152,15 @@ class _CreateBlogPageState extends State<CreateBlogPage> {
       };
 
       await docRef.set(data);
+      if (_selectedCareerId != null) {
+        await NotiAdminApi.sendBlogToFavoriters(
+          adminUid: uid,
+          careerId: _selectedCareerId!,
+          blogTitle: _titleCtrl.text.trim(),
+          fromName: 'Admin',
+          blogId: docRef.id,
+        );
+      }
 
       _snack('Blog created successfully.');
       if (!mounted) return;
@@ -162,6 +172,7 @@ class _CreateBlogPageState extends State<CreateBlogPage> {
         _uploadProgress = 0;
       });
     }
+    print(">>> sendBlogToFavoriters careerId=$_selectedCareerId");
   }
 
   void _snack(String msg, {bool isError = false}) {

@@ -32,6 +32,7 @@ import 'package:aspire_edge_404_notfound/pages/register_page.dart';
 import 'package:aspire_edge_404_notfound/pages/sedding/career_seed.dart';
 import 'package:aspire_edge_404_notfound/pages/sedding/seed_art_docs.dart';
 import 'package:aspire_edge_404_notfound/pages/sedding/seed_healthcare_docs.dart';
+import 'package:aspire_edge_404_notfound/pages/sedding/seed_science_docs.dart';
 import 'package:aspire_edge_404_notfound/pages/sedding/seed_stories.dart';
 // import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/add_story_page.dart';
@@ -52,7 +53,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await LocalNoti.init();
-  // await seedArtDocs();
+  // await seedScienceDocs();
 
   final user = FirebaseAuth.instance.currentUser;
 

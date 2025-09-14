@@ -75,7 +75,6 @@ class _NotificationsListenerState extends State<NotificationsListener> {
                 _shownIds.add(id);
                 LocalNoti.show(title, body);
               }
-              print("Listen change id=$id, read=$read");
             }
           }
         });
@@ -441,10 +440,11 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage>
     } else if (type == 'career_update' && careerId.isNotEmpty) {
       Navigator.pushNamed(context, '/career_detail', arguments: careerId);
     } else if (type == 'blog' && blogId.isNotEmpty) {
-      Navigator.pushNamed(context, '/blog_detail', arguments: blogId);
+      Navigator.pushNamed(context, '/blog_detail', arguments: {'blogId': blogId},);
     } else if (type == 'feedback' || type == 'reply') {
       Navigator.pushNamed(context, '/feedback');
-    } else {
+    }
+    else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("No action available for this notification"),
@@ -615,7 +615,6 @@ class NotiAdminApi {
         'read': false,
         if (extraData != null) ...extraData,
       });
-      print("Creating noti for $toUid: read=false");
     }
     await batch.commit();
   }
