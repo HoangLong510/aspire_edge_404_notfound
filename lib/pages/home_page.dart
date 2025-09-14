@@ -313,73 +313,63 @@ class HomePage extends StatelessWidget {
 
   /// Blog Section
   Widget _buildBlog(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-            child: Text(
-              "Recommended for You",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          _InterestChip(
-            label: "Kinh doanh 📈",
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                "/industry_intro",
-                arguments: {"industry": "Healthcare"},
-              );
-            },
-          Card(
-            clipBehavior: Clip.antiAlias,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: InkWell(
-              onTap: () => Navigator.pushNamed(context, "/blog_detail"),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: SizedBox(
-                      height: 150,
-                      width: double.infinity,
-                      child: Center(
-                        child: Lottie.asset(
-                          "assets/lottie/interview.json",
-                          fit: BoxFit.contain,
-                        ),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+        child: Text(
+          "Recommended for You",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      Card(
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, "/blog_detail"),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  height: 150,
+                  width: double.infinity,
+                  child: Center(
+                    child: Lottie.asset(
+                      "assets/lottie/interview.json",
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "5 Secrets to a Successful Interview",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "5 Secrets to a Successful Interview",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Insights from HR experts",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
+                    SizedBox(height: 4),
+                    Text(
+                      "Insights from HR experts",
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      );
-
+        ),
+      ),
+    ],
+  );
   /// Interests
   Widget _buildQuickInterests(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,13 +393,15 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               _InterestChip(
-                label: "Business",
-                icon: Iconsax.activity,
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  "/industry_intro",
-                  arguments: {"industry": "Business"},
-                ),
+                label: "Healthcare",
+                icon: Iconsax.heart, // thêm icon phù hợp
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    "/industry_intro",
+                    arguments: {"industry": "Healthcare"},
+                  );
+                },
               ),
               _InterestChip(
                 label: "Art",
