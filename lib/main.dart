@@ -31,7 +31,7 @@ import 'package:aspire_edge_404_notfound/pages/register_page.dart';
 import 'package:aspire_edge_404_notfound/pages/sedding/career_seed.dart';
 import 'package:aspire_edge_404_notfound/pages/sedding/seed_art_docs.dart';
 import 'package:aspire_edge_404_notfound/pages/sedding/seed_healthcare_docs.dart';
-import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
+// import 'package:aspire_edge_404_notfound/pages/seed_achievements_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/add_story_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/admin_stories_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/personal_stories_page.dart';
