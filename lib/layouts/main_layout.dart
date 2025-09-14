@@ -19,7 +19,8 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  late final Future<DocumentSnapshot<Map<String, dynamic>>> _userFuture;
+  // SỬA: Đổi Future thành Stream để lắng nghe thay đổi dữ liệu
+  Stream<DocumentSnapshot<Map<String, dynamic>>>? _userStream;
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
@@ -32,9 +33,10 @@ class _MainLayoutState extends State<MainLayout> {
   void _loadUserData() {
     final user = _auth.currentUser;
     if (user != null) {
-      _userFuture = _firestore.collection('Users').doc(user.uid).get();
+      // SỬA: Thay get() bằng snapshots() để lắng nghe liên tục
+      _userStream = _firestore.collection('Users').doc(user.uid).snapshots();
     } else {
-      _userFuture = Future.error('No user logged in.');
+      _userStream = null;
     }
   }
 
@@ -84,8 +86,9 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      future: _userFuture,
+    // SỬA: Đổi FutureBuilder thành StreamBuilder và sử dụng _userStream
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _userStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(

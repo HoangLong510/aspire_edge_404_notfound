@@ -180,8 +180,9 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
 
     return Scaffold(
       body: SafeArea(
+        // SỬA: Điều chỉnh padding ở SingleChildScrollView chính
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 880),
@@ -212,8 +213,8 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
                                     shrinkWrap: true,
                                     physics:
                                         const NeverScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.fromLTRB(
-                                        16, 16, 16, 80),
+                                    // SỬA: Loại bỏ padding ở đây
+                                    padding: EdgeInsets.zero,
                                     itemCount: _matches.length,
                                     separatorBuilder: (_, __) =>
                                         const SizedBox(height: 14),

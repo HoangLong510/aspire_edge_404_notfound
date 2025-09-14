@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'career_add_page.dart';
 import 'career_path_page.dart';
 
 class CareerDetailPage extends StatefulWidget {

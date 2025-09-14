@@ -563,16 +563,11 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.all(12),
               child: Align(
                 alignment: Alignment.topLeft,
-                child: Material(
-                  color: Colors.white,
-                  shape: const CircleBorder(),
-                  elevation: 2,
-                  child: IconButton(
-                    tooltip: 'Back',
-                    onPressed: _goBack,
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    color: Theme.of(context).primaryColor,
-                  ),
+                child: IconButton(
+                  tooltip: 'Back',
+                  onPressed: _goBack,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             ),
