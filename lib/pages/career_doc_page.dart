@@ -18,7 +18,7 @@ class CareerDocsPage extends StatefulWidget {
 }
 
 class _CareerDocsPageState extends State<CareerDocsPage> {
-  final Map<String, int> _progressMap = {}; // filename -> %
+  final Map<String, int> _progressMap = {};
   final Dio _dio = Dio();
 
   Future<void> _checkPermission() async {
@@ -67,7 +67,7 @@ class _CareerDocsPageState extends State<CareerDocsPage> {
         SnackBar(content: Text("Downloaded $filename")),
       );
 
-      await OpenFile.open(filePath); // mở file sau khi tải xong
+      await OpenFile.open(filePath);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Download failed: $e")),

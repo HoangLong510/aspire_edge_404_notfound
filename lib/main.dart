@@ -66,7 +66,6 @@ Future<void> main() async {
   await seedQuestions(force: false);
   await seedBlogs(force: false);
 
-  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
