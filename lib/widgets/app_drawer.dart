@@ -53,11 +53,16 @@ class AppDrawer extends StatelessWidget {
     const _DrawerItem(
       title: 'Community Stories',
       icon: Icons.menu_book_rounded,
-      route: '/stories', 
+      route: '/stories',
+    ),
+    const _DrawerItem(
+      title: 'Blog',
+      icon: Icons.article_rounded,
+      route: '/blog',
     ),
     const _DrawerItem(
       title: 'About Us',
-      icon: Icons.info_rounded,
+      icon: Icons.groups_rounded,
       route: '/about_us',
     ),
   ];
@@ -99,7 +104,7 @@ class AppDrawer extends StatelessWidget {
     const _DrawerItem(
       title: 'SList Stories',
       icon: Icons.library_books_rounded,
-      route: '/stories_admin', 
+      route: '/stories_admin',
     ),
   ];
 
@@ -138,14 +143,13 @@ class AppDrawer extends StatelessWidget {
           ),
         ),
       );
-      children.addAll(_adminItems.map((item) => _buildDrawerTile(context, item)));
+      children.addAll(
+        _adminItems.map((item) => _buildDrawerTile(context, item)),
+      );
     }
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: children,
-      ),
+      child: ListView(padding: EdgeInsets.zero, children: children),
     );
   }
 
@@ -159,7 +163,9 @@ class AppDrawer extends StatelessWidget {
       accountEmail: Text(email),
       currentAccountPicture: CircleAvatar(
         backgroundColor: Colors.white,
-        backgroundImage: (avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+        backgroundImage: (avatarUrl.isNotEmpty)
+            ? NetworkImage(avatarUrl)
+            : null,
         child: (avatarUrl.isNotEmpty)
             ? null
             : Icon(Icons.person_rounded, size: 40, color: primaryColor),

@@ -32,6 +32,7 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) throw Exception("No signed-in user.");
+
       final userSnap =
           await FirebaseFirestore.instance.collection('Users').doc(uid).get();
       if (!userSnap.exists) throw Exception("User not found.");
@@ -68,8 +69,11 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
 
       matches.sort((a, b) => b.fitPercent.compareTo(a.fitPercent));
 
+      // Enforce UI-side guard: only >50% and max 5 items (even if AI misbehaves)
+      final filtered = matches.where((e) => e.fitPercent > 50).take(5).toList();
+
       setState(() {
-        _matches = matches;
+        _matches = filtered;
         _loading = false;
       });
     } catch (e) {
@@ -138,7 +142,6 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
     return result;
   }
 
-  /// Header giống AnswerQuizPage nhưng không có nút quay lại
   Widget _header(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.primaryColor;
@@ -254,7 +257,6 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await Navigator.of(context).pushNamed('/answer_quiz');
-          // Refresh sau khi làm quiz xong
           _load();
         },
         label: Text(_matches.isEmpty ? "Start Quiz" : "Retake Quiz"),
@@ -309,7 +311,7 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
   }
 }
 
-/// Timeline + card + donut + details (reused from CareerMatchesPage)
+/// Timeline
 class _TimelineRow extends StatelessWidget {
   const _TimelineRow({
     required this.child,
@@ -365,7 +367,8 @@ class _TimelineRow extends StatelessWidget {
   }
 }
 
-class _CareerCard extends StatelessWidget {
+/// Compact Career Card with short summary + bottom sheet "Read more"
+class _CareerCard extends StatefulWidget {
   const _CareerCard({
     required this.item,
     required this.onTap,
@@ -381,21 +384,128 @@ class _CareerCard extends StatelessWidget {
   final Color primary;
 
   @override
+  State<_CareerCard> createState() => _CareerCardState();
+}
+
+class _CareerCardState extends State<_CareerCard> {
+  String _summary(String text) {
+    final t = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (t.length <= 160) return t;
+    final cut = t.indexOf('.', 120);
+    if (cut != -1 && cut < 180) return t.substring(0, cut + 1);
+    return t.substring(0, 160) + '…';
+  }
+
+  void _showAssessmentSheet(BuildContext context) {
+    final item = widget.item;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (_, controller) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: ListView(
+                controller: controller,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: widget.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          item.title ?? item.careerId,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    item.assessment,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          height: 1.5,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  if ((item.skills ?? []).isNotEmpty) ...[
+                    Text('Suggested skills',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            )),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: item.skills!.take(12).map((s) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: widget.primary.withOpacity(.06),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: widget.primary.withOpacity(.2)),
+                          ),
+                          child: Text(s, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: widget.onTap,
+                          icon: const Icon(Icons.route_outlined),
+                          label: const Text('View career path'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final item = widget.item;
 
     return Material(
-      color: surface,
+      color: widget.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: primary.withOpacity(.12), width: 1),
+            border: Border.all(color: widget.primary.withOpacity(.12), width: 1),
             gradient: LinearGradient(
-              colors: [Colors.white, primary.withOpacity(.015)],
+              colors: [Colors.white, widget.primary.withOpacity(.015)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -414,57 +524,55 @@ class _CareerCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: t.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).primaryColor)),
+                          fontWeight: FontWeight.w900,
+                          color: Theme.of(context).primaryColor,
+                        )),
                     const SizedBox(height: 8),
+
                     if (item.assessment.trim().isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(.12),
-                          border:
-                              Border.all(color: Colors.green.withOpacity(.12)),
+                          color: Colors.green.withOpacity(.10),
+                          border: Border.all(color: Colors.green.withOpacity(.12)),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(.18),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
+                            Text(
+                              _summary(item.assessment),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: () => _showAssessmentSheet(context),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.auto_awesome, size: 14),
+                                  const Text('Read more',
+                                      style: TextStyle(fontWeight: FontWeight.w800)),
                                   const SizedBox(width: 4),
-                                  Text('A.I.',
-                                      style: t.labelSmall?.copyWith(
-                                          fontWeight: FontWeight.w800)),
+                                  Icon(Icons.expand_more, size: 18, color: Colors.grey[700]),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(item.assessment,
-                                  style: t.bodyMedium
-                                      ?.copyWith(fontWeight: FontWeight.w700)),
                             ),
                           ],
                         ),
                       ),
+
                     if ((item.industry ?? '').isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: _Lined(
-                            icon: Icons.apartment,
-                            label: 'Industry',
-                            value: item.industry!),
+                          icon: Icons.apartment,
+                          label: 'Industry',
+                          value: item.industry!,
+                        ),
                       ),
+
                     if ((item.description ?? '').isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
@@ -474,6 +582,7 @@ class _CareerCard extends StatelessWidget {
                           value: item.description!,
                         ),
                       ),
+
                     if ((item.skills ?? []).isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),

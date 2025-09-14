@@ -5,6 +5,9 @@ import 'package:aspire_edge_404_notfound/pages/about_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/achievements_slider_page.dart';
 import 'package:aspire_edge_404_notfound/pages/admin_panel_page.dart';
 import 'package:aspire_edge_404_notfound/pages/answer_quiz_page.dart';
+import 'package:aspire_edge_404_notfound/pages/blog_detail_page.dart';
+import 'package:aspire_edge_404_notfound/pages/blog_edit_page.dart';
+import 'package:aspire_edge_404_notfound/pages/blog_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_docs_all_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
@@ -12,12 +15,12 @@ import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
 import 'package:aspire_edge_404_notfound/pages/coaching_tools_page.dart';
 import 'package:aspire_edge_404_notfound/pages/contact/contact_us_page.dart';
+import 'package:aspire_edge_404_notfound/pages/create_blog_page.dart';
 import 'package:aspire_edge_404_notfound/pages/create_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/edit_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/feedback_edit_page.dart';
 import 'package:aspire_edge_404_notfound/pages/feedback_form_page.dart';
 import 'package:aspire_edge_404_notfound/pages/feedback_page.dart';
-import 'package:aspire_edge_404_notfound/pages/home/blog_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/cv_tip_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home/interview_question_detail_page.dart';
 import 'package:aspire_edge_404_notfound/pages/home_page.dart';
@@ -33,6 +36,8 @@ import 'package:aspire_edge_404_notfound/pages/stories/admin_stories_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/personal_stories_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/public_story_page.dart';
 import 'package:aspire_edge_404_notfound/pages/stories/story_detail_page.dart';
+import 'package:aspire_edge_404_notfound/seed/blog_seeder.dart';
+import 'package:aspire_edge_404_notfound/seed/quiz_seeder.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -44,6 +49,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await LocalNoti.init();
+
+  await seedQuestions(force: false);
+  await seedBlogs(force: false);
 
   runApp(const MyApp());
 }
@@ -125,8 +133,6 @@ class _MyAppState extends State<MyApp> {
         '/': (context) => widget.withLayout(const HomePage(), '/'),
         '/profile': (context) =>
             widget.withLayout(const ProfilePage(), '/profile'),
-        '/career_quiz': (context) =>
-            widget.withLayout(const CareerQuizPage(), '/career_quiz'),
         '/career_bank': (context) =>
             widget.withLayout(const CareerManagePage(), '/career_bank'),
         '/career_detail': (context) {
@@ -138,14 +144,14 @@ class _MyAppState extends State<MyApp> {
         },
 
         // Career matches logic
-        '/career_matches': (context) {
+        '/career_quiz': (context) {
           if (isAdmin) {
             return widget.withLayout(
               const QuizManagementPage(),
-              '/career_matches',
+              '/career_quiz',
             );
           }
-          return widget.withLayout(const CareerQuizPage(), '/career_matches');
+          return widget.withLayout(const CareerQuizPage(), '/career_quiz');
         },
 
         // Quiz authoring / admin
@@ -202,7 +208,23 @@ class _MyAppState extends State<MyApp> {
         // Detail pages (không bọc layout nếu bạn muốn full-screen riêng)
         '/cv_detail': (context) => const CVTipDetailPage(),
         '/interview_detail': (context) => const InterviewQuestionDetailPage(),
-        '/blog_detail': (context) => const BlogDetailPage(),
+
+        "/blog": (context) => widget.withLayout(const BlogPage(), '/blog'),
+        "/blog_create": (context) => const CreateBlogPage(),
+        "/blog_detail": (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          final blogId = args['blogId'] as String;
+          return BlogDetailPage(blogId: blogId);
+        },
+        "/blog_edit": (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          final blogId = args['blogId'] as String;
+          return BlogEditPage(blogId: blogId);
+        },
       },
     );
   }
