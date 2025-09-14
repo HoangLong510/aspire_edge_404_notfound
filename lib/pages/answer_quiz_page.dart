@@ -1,18 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:aspire_edge_404_notfound/constants/env_config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lottie/lottie.dart';
 
-import 'career_matches_page.dart';
-
-/// ===========================
-/// OpenAI config
-/// ===========================
-/// Đặt key ở tham số build/run:
-/// flutter run --dart-define=OPENAI_API_KEY=sk-xxx
 const String kOpenAIBaseUrl = 'https://api.openai.com/v1';
 const String kOpenAIModel = 'gpt-4o-mini';
 final String kOpenAIApiKey = EnvConfig.openAIApiKey;
@@ -56,9 +50,15 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
       _userId = uid;
       await _loadData();
     } catch (e) {
-      _error = e.toString();
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
     } finally {
-      if (mounted) setState(() => _initializing = false);
+      if (mounted) {
+        setState(() => _initializing = false);
+      }
     }
   }
 
@@ -70,8 +70,10 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
     });
 
     try {
-      final userSnap =
-          await FirebaseFirestore.instance.collection('Users').doc(_userId).get();
+      final userSnap = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(_userId)
+          .get();
       if (!userSnap.exists) {
         throw Exception('User document not found: Users/$_userId.');
       }
@@ -117,7 +119,9 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
     } catch (e) {
       _error = e.toString();
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -153,8 +157,9 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
       final primary = Theme.of(context).primaryColor;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('Please answer all questions • ${unanswered.length} remaining'),
+          content: Text(
+            'Please answer all questions • ${unanswered.length} remaining',
+          ),
           backgroundColor: primary,
         ),
       );
@@ -163,13 +168,18 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
 
     setState(() => _submitting = true);
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _LoadingScreen(),
+    );
+
     try {
       final quizPayload = _buildResultPayload();
 
-      final careerSnap =
-          await FirebaseFirestore.instance.collection('CareerBank').get();
-
-      // Sanitize toàn bộ doc để tránh Timestamp/GeoPoint/Ref
+      final careerSnap = await FirebaseFirestore.instance
+          .collection('CareerBank')
+          .get();
       final careers = careerSnap.docs.map((d) {
         final raw = d.data();
         final safe = sanitizeForJson(raw);
@@ -188,11 +198,13 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const CareerMatchesPage()),
-      );
+
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
+      Navigator.of(context).pop();
+
       final primary = Theme.of(context).primaryColor;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -220,22 +232,24 @@ class _AnswerQuizPageState extends State<AnswerQuizPage> {
   }) async {
     if (kOpenAIApiKey.trim().isEmpty) {
       throw Exception(
-          'Missing OPENAI_API_KEY. Pass it via --dart-define=OPENAI_API_KEY=...');
+        'Missing OPENAI_API_KEY. Pass it via --dart-define=OPENAI_API_KEY=...',
+      );
     }
 
     final systemPrompt = '''
-You are a strict career-matching assistant. For EACH career provided, compute a suitability score from 0 to 100 based on the user's tier and quiz answers.
-Be decisive and use the full 0–100 range. Keep each assessment short (<= 25 words), specific, and actionable. Do not repeat question texts.
-Return ONLY JSON following the provided schema. No extra commentary.
+You are a strict career-matching assistant. Score EVERY career from 0–100 using the user's tier and quiz answers. Use the full range and be decisive.
+Return ONLY the top 5 with score strictly greater than 50.
+Important: All returned matches must have DISTINCT integer scores (no ties). If two careers feel equal, break the tie with finer signals (experience depth, tool familiarity, domain exposure), and assign slightly different scores.
+For each match, write a single-paragraph assessment (50–90 words): why it fits; 1 small risk or gap; 2–3 concrete next steps/skills/certifications/tools. No line breaks, no bullets.
+Return ONLY JSON following the schema. No extra commentary.
 ''';
 
-    // Payload gửi cho LLM — nhớ sanitize trước khi encode
     final userPayload = {
       'instruction':
-          'Given the user tier and quiz result, compute a suitability score and a concise assessment for EVERY career.',
+          'Score all careers, then output only the top 5 with fitPercent > 50. Ensure all fitPercent values are unique integers (no ties).',
       'userTier': userTier,
-      'quizResult': quizResult, // chỉ gồm string -> JSON-safe
-      'careers': careers, // đã sanitize ở _submit()
+      'quizResult': quizResult,
+      'careers': careers,
       'required_output_schema': {
         'type': 'object',
         'properties': {
@@ -256,20 +270,6 @@ Return ONLY JSON following the provided schema. No extra commentary.
         'required': ['matches'],
         'additionalProperties': false,
       },
-      'example': {
-        'matches': [
-          {
-            'careerId': 'abc123',
-            'fitPercent': 86,
-            'assessment': 'Strong alignment with your interests and skills.',
-          },
-          {
-            'careerId': 'def456',
-            'fitPercent': 42,
-            'assessment': 'Possible, but other roles fit better.',
-          },
-        ],
-      },
     };
 
     final safeUserPayload = sanitizeForJson(userPayload);
@@ -288,7 +288,7 @@ Return ONLY JSON following the provided schema. No extra commentary.
         {
           'role': 'user',
           'content':
-              'Return ONLY a strict JSON object following the schema { matches: [{careerId, fitPercent, assessment}] }.\nAssess every career in "careers". Here is the input:\n\n${jsonEncode(safeUserPayload)}',
+              'Return ONLY a strict JSON object following the schema { matches: [{careerId, fitPercent, assessment}] }. Assess all careers in "careers"; include only the top 5 with fitPercent > 50. All fitPercent values must be unique integers. Input:\n\n${jsonEncode(safeUserPayload)}',
         },
       ],
     });
@@ -302,8 +302,8 @@ Return ONLY JSON following the provided schema. No extra commentary.
     final choices = (decoded['choices'] as List?) ?? const [];
     final content = choices.isNotEmpty
         ? (choices.first['message']?['content'] ??
-            choices.first['message']?['delta']?['content'] ??
-            '')
+              choices.first['message']?['delta']?['content'] ??
+              '')
         : '';
 
     Map<String, dynamic>? parsed;
@@ -315,7 +315,10 @@ Return ONLY JSON following the provided schema. No extra commentary.
       parsed = jsonDecode(m.group(0)!) as Map<String, dynamic>;
     }
 
-    final rawMatches = (parsed['matches'] is List) ? parsed['matches'] as List : [];
+    final rawMatches = (parsed['matches'] is List)
+        ? parsed['matches'] as List
+        : [];
+
     final results = rawMatches.map<Map<String, dynamic>>((m) {
       final id = '${m['careerId'] ?? ''}';
       final percent = _clampInt((m['fitPercent'] ?? 0) as num, 0, 100);
@@ -323,8 +326,25 @@ Return ONLY JSON following the provided schema. No extra commentary.
       return {'careerId': id, 'fitPercent': percent, 'assessment': assessment};
     }).toList();
 
-    results.sort((a, b) => (b['fitPercent'] ?? 0).compareTo(a['fitPercent'] ?? 0));
-    return results;
+    final filtered = results.where((r) => (r['fitPercent'] ?? 0) > 50).toList()
+      ..sort((a, b) => (b['fitPercent'] ?? 0).compareTo(a['fitPercent'] ?? 0));
+
+    final unique = <Map<String, dynamic>>[];
+    final used = <int>{};
+
+    for (final r in filtered) {
+      var score = (r['fitPercent'] ?? 0) as int;
+      while (used.contains(score) && score > 51) {
+        score -= 1;
+      }
+      if (score <= 50) continue;
+      r['fitPercent'] = score;
+      used.add(score);
+      unique.add(r);
+      if (unique.length == 5) break;
+    }
+
+    return unique;
   }
 
   int _clampInt(num n, int min, int max) {
@@ -333,10 +353,6 @@ Return ONLY JSON following the provided schema. No extra commentary.
     if (v > max) return max;
     return v;
   }
-
-  /// ===========================
-  /// UI helpers
-  /// ===========================
 
   Widget _header(BuildContext context) {
     final theme = Theme.of(context);
@@ -354,7 +370,9 @@ Return ONLY JSON following the provided schema. No extra commentary.
       child: Row(
         children: [
           IconButton.outlined(
-            onPressed: _submitting ? null : () => Navigator.of(context).maybePop(),
+            onPressed: _submitting
+                ? null
+                : () => Navigator.of(context).maybePop(),
             tooltip: 'Back',
             style: IconButton.styleFrom(
               foregroundColor: primary,
@@ -419,8 +437,9 @@ Return ONLY JSON following the provided schema. No extra commentary.
   Widget _questionCard(_QItem q) {
     final theme = Theme.of(context);
     final primary = theme.primaryColor;
-    final entries =
-        q.options.entries.where((e) => e.value.trim().isNotEmpty).toList();
+    final entries = q.options.entries
+        .where((e) => e.value.trim().isNotEmpty)
+        .toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -468,79 +487,39 @@ Return ONLY JSON following the provided schema. No extra commentary.
   Widget build(BuildContext context) {
     final primary = Theme.of(context).primaryColor;
 
-    if (_initializing) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 880),
-            child: Column(
-              children: [
-                _header(context),
-                const SizedBox(height: 32),
-                const CircularProgressIndicator(),
-                const SizedBox(height: 12),
-                const Text('Preparing quiz...'),
-              ],
-            ),
+    if (_initializing || _loading) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 12),
+              Text(
+                _initializing ? 'Preparing quiz...' : 'Loading questions...',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
           ),
         ),
       );
     }
 
     if (_error != null) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 880),
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _header(context),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: primary.withOpacity(.22)),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    children: [
-                      Text('Error: $_error', textAlign: TextAlign.center),
-                      const SizedBox(height: 10),
-                      FilledButton(
-                        onPressed: () {
-                          setState(() {
-                            _error = null;
-                            _initializing = true;
-                          });
-                          _init();
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
+                Text(
+                  'Error: $_error',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_loading) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 880),
-            child: Column(
-              children: [
-                _header(context),
-                const SizedBox(height: 32),
-                const CircularProgressIndicator(),
-                const SizedBox(height: 12),
-                const Text('Loading questions...'),
+                const SizedBox(height: 16),
+                FilledButton(onPressed: _init, child: const Text('Retry')),
               ],
             ),
           ),
@@ -549,75 +528,66 @@ Return ONLY JSON following the provided schema. No extra commentary.
     }
 
     if (_questions.isEmpty) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 880),
-            child: Column(
-              children: [
-                _header(context),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: primary.withOpacity(.22)),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Text(
-                    'No questions for your tier (${_userTier ?? 'unknown'}).',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              'No questions for your tier (${_userTier ?? 'unknown'}).',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
         ),
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 880),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _header(context),
-              _progressPill(context),
-              const SizedBox(height: 12),
-              _questionCard(_current),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _isFirst ? null : _prev,
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Previous'),
-                  ),
-                  const Spacer(),
-                  if (!_isLast)
-                    FilledButton.icon(
-                      onPressed: _canGoNext && !_submitting ? _next : null,
-                      icon: const Icon(Icons.arrow_forward),
-                      label: const Text('Next'),
-                    )
-                  else
-                    FilledButton.icon(
-                      onPressed: _canSubmit && !_submitting ? _submit : null,
-                      icon: _submitting
-                          ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.check_circle_outline),
-                      label: Text(_submitting ? 'Submitting...' : 'Submit'),
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 880),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _header(context),
+                _progressPill(context),
+                const SizedBox(height: 12),
+                _questionCard(_current),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _isFirst ? null : _prev,
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Previous'),
                     ),
-                ],
-              ),
-            ],
+                    const Spacer(),
+                    if (!_isLast)
+                      FilledButton.icon(
+                        onPressed: _canGoNext && !_submitting ? _next : null,
+                        icon: const Icon(Icons.arrow_forward),
+                        label: const Text('Next'),
+                      )
+                    else
+                      FilledButton.icon(
+                        onPressed: _canSubmit && !_submitting ? _submit : null,
+                        icon: _submitting
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle_outline),
+                        label: Text(_submitting ? 'Submitting...' : 'Submit'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -641,9 +611,121 @@ class _QItem {
   final DateTime? createdAt;
 }
 
-/// =======================================================
-/// Utils: Sanitize Firestore types to JSON-safe structures
-/// =======================================================
+class _LoadingScreen extends StatefulWidget {
+  const _LoadingScreen();
+
+  @override
+  State<_LoadingScreen> createState() => _LoadingScreenState();
+}
+
+class _LoadingScreenState extends State<_LoadingScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  final List<String> _messages = [
+    'Analyzing your preferences...',
+    'Evaluating your skills...',
+    'Finding the most suitable career opportunities...',
+    'Arranging suggestions by relevance...',
+  ];
+  String _currentMessage = 'AI is working hard...';
+  late final Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+    _startMessageCycle();
+  }
+
+  void _startMessageCycle() {
+    int index = 0;
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!mounted) {
+        _timer.cancel();
+        return;
+      }
+      setState(() {
+        _currentMessage = _messages[index % _messages.length];
+        index++;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Lottie.asset(
+                'assets/lottie/ai_loading.json',
+                controller: _controller,
+                onLoaded: (composition) {
+                  _controller
+                    ..duration = composition.duration
+                    ..repeat();
+                },
+                width: 150,
+                height: 150,
+              ),
+              const SizedBox(height: 30),
+              Text(
+                'AI is processing results',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 50,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        return ScaleTransition(scale: animation, child: child);
+                      },
+                  child: Text(
+                    _currentMessage,
+                    key: ValueKey<String>(_currentMessage),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              LinearProgressIndicator(
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).primaryColor,
+                ),
+                minHeight: 6,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 dynamic sanitizeForJson(dynamic value) {
   if (value == null || value is num || value is String || value is bool) {
     return value;
@@ -658,7 +740,7 @@ dynamic sanitizeForJson(dynamic value) {
     return {'lat': value.latitude, 'lng': value.longitude};
   }
   if (value is DocumentReference) {
-    return value.path; // hoặc value.id tùy nhu cầu
+    return value.path;
   }
   if (value is Iterable) {
     return value.map(sanitizeForJson).toList();
@@ -666,6 +748,5 @@ dynamic sanitizeForJson(dynamic value) {
   if (value is Map) {
     return value.map((k, v) => MapEntry(k.toString(), sanitizeForJson(v)));
   }
-  // fallback
   return value.toString();
 }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 
 class StoryDetailPage extends StatefulWidget {
@@ -20,24 +21,27 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
         FirebaseFirestore.instance.collection("Stories").doc(widget.storyId);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("📖 Story Detail"), centerTitle: true),
+      appBar: AppBar(
+        title: const Text("Story Detail"),
+        centerTitle: true,
+      ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: storyRef.snapshots(),
         builder: (ctx, snap) {
-          if (!snap.hasData) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snap.data!.exists) {
+          if (!snap.hasData || !snap.data!.exists) {
             return const Center(child: Text("Story not found"));
           }
 
-          final data = snap.data!.data() as Map<String, dynamic>;
-          final bannerUrl = data["bannerUrl"];
-          final mainTitle = data["mainTitle"] ?? "";
+          final data = snap.data!.data() as Map<String, dynamic>? ?? {};
+          final bannerUrl = data["bannerUrl"] ?? "";
+          final mainTitle = data["mainTitle"] ?? "[Untitled]";
           final subTitle = data["subTitle"] ?? "";
           final content = data["content"] ?? "";
           final userId = data["userId"];
-          final createdAt = (data["createdAt"] as Timestamp?);
+          final createdAt = data["createdAt"] as Timestamp?;
           final status = data["status"] ?? "pending";
 
           final createdTime = createdAt != null
@@ -48,20 +52,18 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (bannerUrl != null && bannerUrl.isNotEmpty)
+                if (bannerUrl.isNotEmpty)
                   Image.network(
                     bannerUrl,
                     width: double.infinity,
                     height: 230,
                     fit: BoxFit.cover,
                   ),
-
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title
                       Text(
                         mainTitle,
                         style: Theme.of(context)
@@ -79,17 +81,22 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                               ?.copyWith(color: Colors.grey[600]),
                         ),
                       ],
-
                       const SizedBox(height: 20),
-
-                      // Creator info
                       FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance
                             .collection("Users")
                             .doc(userId)
                             .get(),
                         builder: (ctx, userSnap) {
-                          if (!userSnap.hasData) return const SizedBox();
+                          if (userSnap.connectionState ==
+                              ConnectionState.waiting) {
+                            return const CircularProgressIndicator(
+                                strokeWidth: 2);
+                          }
+                          if (!userSnap.hasData || !userSnap.data!.exists) {
+                            return const Text("Author not found");
+                          }
+
                           final u =
                               userSnap.data!.data() as Map<String, dynamic>?;
 
@@ -104,7 +111,7 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                                     : null,
                                 child: (u?["AvatarUrl"] == null ||
                                         (u?["AvatarUrl"] as String).isEmpty)
-                                    ? const Icon(Icons.person, size: 22)
+                                    ? const Icon(Iconsax.user)
                                     : null,
                               ),
                               const SizedBox(width: 10),
@@ -114,9 +121,8 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                                   Text(
                                     u?["Name"] ?? "Unknown",
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15),
                                   ),
                                   Text(
                                     u?["E-mail"] ?? "No email",
@@ -139,10 +145,7 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                           );
                         },
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Main content
                       if (content.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -158,8 +161,6 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                     ],
                   ),
                 ),
-
-                // Only show likes/comments if approved
                 if (status == "approved") ...[
                   const Divider(),
                   _ActionBar(
@@ -183,7 +184,6 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
   }
 }
 
-// ================= ACTION BAR ==================
 class _ActionBar extends StatelessWidget {
   final DocumentReference storyRef;
   final bool showComments;
@@ -203,55 +203,69 @@ class _ActionBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          // LIKE
           StreamBuilder<DocumentSnapshot>(
             stream: storyRef.collection("likes").doc(uid).snapshots(),
             builder: (ctx, snap) {
               final isLiked = snap.hasData && snap.data!.exists;
               return IconButton(
                 icon: Icon(
-                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  isLiked ? Iconsax.heart5 : Iconsax.heart,
                   color: isLiked ? Colors.red : Colors.grey,
-                  size: 28,
+                  size: 26,
                 ),
-                onPressed: () {
+                onPressed: () async {
                   if (uid == null) return;
+                  final likeDoc = storyRef.collection("likes").doc(uid);
+
                   if (isLiked) {
-                    storyRef.collection("likes").doc(uid).delete();
+                    await likeDoc.delete();
+                    await storyRef.update({
+                      "likeCount": FieldValue.increment(-1),
+                    });
                   } else {
-                    storyRef.collection("likes").doc(uid).set({
+                    await likeDoc.set({
                       "userId": uid,
                       "ts": FieldValue.serverTimestamp(),
+                    });
+                    await storyRef.update({
+                      "likeCount": FieldValue.increment(1),
                     });
                   }
                 },
               );
             },
           ),
-          StreamBuilder<QuerySnapshot>(
-            stream: storyRef.collection("likes").snapshots(),
-            builder: (ctx, likeSnap) {
-              final count = likeSnap.data?.docs.length ?? 0;
+          StreamBuilder<DocumentSnapshot>(
+            stream: storyRef.snapshots(),
+            builder: (ctx, snap) {
+              if (!snap.hasData || !snap.data!.exists) {
+                return const Text("0 likes");
+              }
+              final data = snap.data!.data() as Map<String, dynamic>? ?? {};
+              final likeCount = (data["likeCount"] ?? 0) as int;
               return Text(
-                "$count likes",
+                "$likeCount likes",
                 style: const TextStyle(fontWeight: FontWeight.w500),
               );
             },
           ),
           const SizedBox(width: 20),
-
-          // COMMENT COUNT + TOGGLE
-          StreamBuilder<QuerySnapshot>(
-            stream: storyRef.collection("comments").snapshots(),
+          StreamBuilder<DocumentSnapshot>(
+            stream: storyRef.snapshots(),
             builder: (ctx, snap) {
-              final count = snap.data?.docs.length ?? 0;
+              if (!snap.hasData || !snap.data!.exists) {
+                return const Text("View Comments (0)");
+              }
+              final data = snap.data!.data() as Map<String, dynamic>? ?? {};
+              final commentCount = (data["commentCount"] ?? 0) as int;
               return TextButton.icon(
                 onPressed: onToggleComments,
-                icon: const Icon(Icons.comment, size: 24, color: Colors.grey),
+                icon: const Icon(Iconsax.message,
+                    size: 22, color: Colors.grey),
                 label: Text(
                   showComments
-                      ? "Hide Comments ($count)"
-                      : "View Comments ($count)",
+                      ? "Hide Comments ($commentCount)"
+                      : "View Comments ($commentCount)",
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
               );
@@ -263,7 +277,6 @@ class _ActionBar extends StatelessWidget {
   }
 }
 
-// ================= COMMENTS ==================
 class _CommentsSection extends StatefulWidget {
   final DocumentReference storyRef;
   const _CommentsSection({required this.storyRef});
@@ -274,7 +287,7 @@ class _CommentsSection extends StatefulWidget {
 
 class _CommentsSectionState extends State<_CommentsSection> {
   final controller = TextEditingController();
-  String sortOrder = "newest"; // default
+  String sortOrder = "newest";
 
   Future<void> _addComment() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -284,6 +297,11 @@ class _CommentsSectionState extends State<_CommentsSection> {
       "userId": uid,
       "text": controller.text.trim(),
       "createdAt": FieldValue.serverTimestamp(),
+    });
+
+    // tăng số comment
+    await widget.storyRef.update({
+      "commentCount": FieldValue.increment(1),
     });
 
     controller.clear();
@@ -298,7 +316,6 @@ class _CommentsSectionState extends State<_CommentsSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sort options
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -309,10 +326,8 @@ class _CommentsSectionState extends State<_CommentsSection> {
               DropdownButton<String>(
                 value: sortOrder,
                 items: const [
-                  DropdownMenuItem(
-                      value: "newest", child: Text("Newest first")),
-                  DropdownMenuItem(
-                      value: "oldest", child: Text("Oldest first")),
+                  DropdownMenuItem(value: "newest", child: Text("Newest first")),
+                  DropdownMenuItem(value: "oldest", child: Text("Oldest first")),
                 ],
                 onChanged: (v) {
                   setState(() {
@@ -323,21 +338,26 @@ class _CommentsSectionState extends State<_CommentsSection> {
             ],
           ),
           const SizedBox(height: 8),
-
-          // Comments list
           StreamBuilder<QuerySnapshot>(
             stream: widget.storyRef
                 .collection("comments")
                 .orderBy("createdAt", descending: orderByDesc)
                 .snapshots(),
             builder: (ctx, snap) {
-              if (!snap.hasData) return const SizedBox();
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                );
+              }
+              if (!snap.hasData || snap.data!.docs.isEmpty) {
+                return const Text("No comments yet");
+              }
               return Column(
                 children: snap.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final userId = data["userId"];
                   final text = data["text"] ?? "";
-                  final ts = (data["createdAt"] as Timestamp?);
+                  final ts = data["createdAt"] as Timestamp?;
                   final time = ts != null
                       ? DateFormat("dd/MM HH:mm").format(ts.toDate())
                       : "";
@@ -348,9 +368,10 @@ class _CommentsSectionState extends State<_CommentsSection> {
                         .doc(userId)
                         .get(),
                     builder: (ctx, userSnap) {
-                      if (!userSnap.hasData) {
+                      if (userSnap.connectionState ==
+                          ConnectionState.waiting) {
                         return const ListTile(
-                          leading: CircleAvatar(child: Icon(Icons.person)),
+                          leading: CircleAvatar(child: Icon(Iconsax.user)),
                           title: Text("Loading..."),
                         );
                       }
@@ -366,7 +387,7 @@ class _CommentsSectionState extends State<_CommentsSection> {
                               : null,
                           child: (u?["AvatarUrl"] == null ||
                                   (u?["AvatarUrl"] as String).isEmpty)
-                              ? const Icon(Icons.person)
+                              ? const Icon(Iconsax.user)
                               : null,
                         ),
                         title: Text(
@@ -392,8 +413,6 @@ class _CommentsSectionState extends State<_CommentsSection> {
               );
             },
           ),
-
-          // Comment input
           Row(
             children: [
               Expanded(
@@ -416,8 +435,8 @@ class _CommentsSectionState extends State<_CommentsSection> {
               CircleAvatar(
                 backgroundColor: Colors.blueAccent,
                 child: IconButton(
-                  icon:
-                      const Icon(Icons.send, color: Colors.white, size: 18),
+                  icon: const Icon(Iconsax.send_2,
+                      color: Colors.white, size: 18),
                   onPressed: _addComment,
                 ),
               ),
