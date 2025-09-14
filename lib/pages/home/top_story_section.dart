@@ -22,10 +22,30 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
   @override
   void initState() {
     super.initState();
-    _loadStories();
+    _checkOrGenerateTopStories();
   }
 
-  Future<void> _loadStories() async {
+  Future<void> _checkOrGenerateTopStories() async {
+    final todayId = DateTime.now().toIso8601String().split("T").first;
+    final todayDoc =
+        FirebaseFirestore.instance.collection("TopStoriesDaily").doc(todayId);
+
+    final todaySnap = await todayDoc.get();
+    if (todaySnap.exists) {
+      final data = todaySnap.data() as Map<String, dynamic>;
+      final raw = data["storyIds"];
+
+      final ids = raw is List
+          ? raw.cast<String>()
+          : (raw as Map).values.cast<String>().toList();
+
+      await _loadStoriesByIds(ids);
+    } else {
+      await _generateTopStories(todayDoc);
+    }
+  }
+
+  Future<void> _generateTopStories(DocumentReference todayDoc) async {
     setState(() => _loading = true);
     try {
       final snap = await FirebaseFirestore.instance
@@ -59,30 +79,52 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
       }
 
       final ranked = await _callOpenAIForTopStories(stories);
-      final topIds = ranked.take(5).map((e) => e["storyId"]).toList();
+      final topIds =
+          ranked.take(5).map((e) => e["storyId"] as String).toList();
 
+      // ✅ always store as List<String>
+      await todayDoc.set({
+        "createdAt": FieldValue.serverTimestamp(),
+        "storyIds": List<String>.from(topIds),
+      });
+
+      await _loadStoriesByIds(topIds);
+    } catch (e) {
+      debugPrint("Error generating top stories: $e");
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadStoriesByIds(List<String> ids) async {
+    try {
       List<Map<String, dynamic>> tmp = [];
-      for (final story in stories.where((s) => topIds.contains(s["id"]))) {
+      for (final id in ids) {
+        final doc =
+            await FirebaseFirestore.instance.collection("Stories").doc(id).get();
+        if (!doc.exists) continue;
+        final data = doc.data()!;
+        final likesSnap = await doc.reference.collection("likes").get();
+        final commentsSnap = await doc.reference.collection("comments").get();
         final userSnap = await FirebaseFirestore.instance
             .collection("Users")
-            .doc(story["userId"])
+            .doc(data["userId"])
             .get();
         final user = userSnap.data() ?? {};
+
         tmp.add({
-          "id": story["id"],
-          "title": story["title"],
-          "mainTitle": story["mainTitle"],
-          "bannerUrl": story["bannerUrl"],
+          "id": doc.id,
+          "title": data["subTitle"] ?? "",
+          "mainTitle": data["mainTitle"] ?? "",
+          "bannerUrl": data["bannerUrl"] ?? "",
           "name": user["Name"] ?? "Anonymous",
           "avatar": user["AvatarUrl"] ?? "",
-          "likes": story["likes"],
-          "commentCount": story["commentCount"],
+          "likes": likesSnap.size,
+          "commentCount": commentsSnap.size,
         });
       }
-
       setState(() => _stories = tmp);
     } catch (e) {
-      debugPrint("Error loading top stories: $e");
+      debugPrint("Error loading stories by IDs: $e");
     } finally {
       setState(() => _loading = false);
     }
@@ -94,7 +136,7 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
       throw Exception('Missing OPENAI_API_KEY');
     }
 
-    final systemPrompt = '''
+    const systemPrompt = '''
 You are ranking user success stories.
 Criteria:
 - More likes = higher score
@@ -133,8 +175,7 @@ Return ONLY JSON in this schema:
     final rawMatches =
         (parsed['matches'] is List) ? parsed['matches'] as List : [];
 
-    rawMatches.sort(
-        (a, b) => (b['score'] ?? 0).compareTo(a['score'] ?? 0));
+    rawMatches.sort((a, b) => (b['score'] ?? 0).compareTo(a['score'] ?? 0));
 
     return rawMatches.cast<Map<String, dynamic>>();
   }
@@ -157,7 +198,7 @@ Return ONLY JSON in this schema:
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            "🌟 Top Success Stories",
+            "Top Success Stories",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
@@ -194,7 +235,6 @@ Return ONLY JSON in this schema:
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Banner
                       if ((s["bannerUrl"] as String).isNotEmpty)
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
@@ -206,8 +246,6 @@ Return ONLY JSON in this schema:
                             fit: BoxFit.cover,
                           ),
                         ),
-
-                      // Nội dung
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -244,38 +282,22 @@ Return ONLY JSON in this schema:
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold),
+                                    fontSize: 15, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
-
-                              // Subtitle fade nếu quá dài
                               Flexible(
-                                child: ShaderMask(
-                                  shaderCallback: (Rect bounds) {
-                                    return const LinearGradient(
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                      colors: [Colors.black, Colors.transparent],
-                                    ).createShader(bounds);
-                                  },
-                                  blendMode: BlendMode.dstIn,
-                                  child: Text(
-                                    s["title"],
-                                    maxLines: 2,
-                                    overflow: TextOverflow.fade,
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[700]),
-                                  ),
+                                child: Text(
+                                  s["title"],
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 13, color: Colors.grey[700]),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-
-                      // Like + Comment
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),

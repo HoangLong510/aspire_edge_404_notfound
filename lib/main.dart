@@ -12,6 +12,7 @@ import 'package:aspire_edge_404_notfound/pages/career_docs_all_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_manage_page.dart';
 import 'package:aspire_edge_404_notfound/pages/career_quiz_page.dart';
 import 'package:aspire_edge_404_notfound/pages/change_password_page.dart';
+import 'package:aspire_edge_404_notfound/chatbox/pages/coaching_tools_page.dart';
 import 'package:aspire_edge_404_notfound/pages/contact/contact_us_page.dart';
 import 'package:aspire_edge_404_notfound/pages/create_blog_page.dart';
 import 'package:aspire_edge_404_notfound/pages/create_quiz_page.dart';
@@ -188,6 +189,8 @@ class _MyAppState extends State<MyApp> {
             widget.withLayout(const PublicStoriesPage(), '/stories'),
         '/stories_admin': (context) =>
             widget.withLayout(const AdminStoriesPage(), '/stories_admin'),
+            '/coaching_tools': (context) =>
+            widget.withLayout(const CoachingChatPage(), '/coaching_tools'),
         '/add_story': (context) =>
             widget.withLayout(const AddStoryPage(), '/add_story'),
         '/story_detail': (context) {
