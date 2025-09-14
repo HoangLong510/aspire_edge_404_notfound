@@ -3,39 +3,31 @@ import 'package:iconsax/iconsax.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_map/flutter_map.dart' as fm;
+import '../chatbox/services/team_service.dart';
+import '../chatbox/models/team_member.dart';
 
-class AboutUsPage extends StatefulWidget {
+class AboutUsPage extends StatelessWidget {
   const AboutUsPage({super.key});
 
-  @override
-  State<AboutUsPage> createState() => _AboutUsPageState();
-}
-
-class _AboutUsPageState extends State<AboutUsPage> {
   static const LatLng _officeLatLng = LatLng(10.807730, 106.660864);
 
   @override
   Widget build(BuildContext context) {
+    // Nếu getTeamMembers() là static
+    final team = TeamService.getTeamMembers();
+    // Nếu không static thì sửa: final team = TeamService().getTeamMembers();
+
     return Scaffold(
-      appBar: AppBar(centerTitle: true),
+      appBar: AppBar(centerTitle: true, title: const Text("About Us")),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
               width: double.infinity,
-              color: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Lottie.asset(
-                    "assets/lottie/welcome.json",
-                    height: 200,
-                    repeat: true,
-                    animate: true,
-                    fit: BoxFit.contain,
-                  ),
+                  Lottie.asset("assets/lottie/welcome.json", height: 200),
                   const SizedBox(height: 20),
                   const Text(
                     "About Us",
@@ -49,7 +41,6 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -61,36 +52,9 @@ class _AboutUsPageState extends State<AboutUsPage> {
               ),
             ),
             const SizedBox(height: 20),
-            const Divider(),
-            const Text(
-              "Meet Our Team",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            const Text("Meet Our Team",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757581755/z6993755783890_21c967a2b84e93eb796395f6174186b8_wgnmaa.jpg",
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const SizedBox(
-                    height: 200,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                },
-                errorBuilder: (_, __, ___) => Container(
-                  height: 200,
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(Iconsax.user_octagon, size: 50),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: GridView.count(
@@ -100,40 +64,18 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 shrinkWrap: true,
                 childAspectRatio: 0.8,
                 physics: const NeverScrollableScrollPhysics(),
-                children: const [
-                  _TeamMember(
-                    name: "Hoàng Gia Huy",
-                    email: "huypg7645@gmail.com",
-                    avatarUrl:
-                        "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582257/huy_zxzl6e.jpg",
-                  ),
-                  _TeamMember(
-                    name: "Trần Nhật Linh",
-                    email: "nhatlinh3b122@gmail.com",
-                    avatarUrl:
-                        "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582259/linh_mjmqyv.jpg",
-                  ),
-                  _TeamMember(
-                    name: "Nguyễn Trần Hoàng Long",
-                    email: "hoanglongnguyen0510@gmail.com",
-                    avatarUrl:
-                        "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582261/long_pbab33.jpg",
-                  ),
-                  _TeamMember(
-                    name: "Nguyễn Anh Quân",
-                    email: "quan@gmail.com",
-                    avatarUrl:
-                        "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757582260/qu%C3%A2n_w8nrqr.jpg",
-                  ),
-                ],
+                children: team
+                    .map((m) => _TeamMember(
+                          name: m.name,
+                          email: m.email,
+                          avatarUrl: m.avatarUrl,
+                        ))
+                    .toList(),
               ),
             ),
             const SizedBox(height: 24),
-            const Divider(),
-            const Text(
-              "Our Office",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text("Our Office",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text(
               "21Bis Hau Giang, Ward 4, Tan Binh, Ho Chi Minh City, Vietnam",
@@ -159,11 +101,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                         point: _officeLatLng,
                         width: 80,
                         height: 80,
-                        child: const Icon(
-                          Iconsax.location,
-                          color: Colors.red,
-                          size: 38,
-                        ),
+                        child: const Icon(Iconsax.location, color: Colors.red),
                       ),
                     ],
                   ),
@@ -176,28 +114,15 @@ class _AboutUsPageState extends State<AboutUsPage> {
               children: const [
                 Icon(Iconsax.sms, color: Colors.blueGrey),
                 SizedBox(width: 8),
-                Text(
-                  "team02aptech@gmail.com",
-                  style: TextStyle(color: Colors.blueGrey),
-                ),
+                Text("team02aptech@gmail.com",
+                    style: TextStyle(color: Colors.blueGrey)),
               ],
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, "/contact_us");
-              },
+              onPressed: () => Navigator.pushNamed(context, "/contact_us"),
               icon: const Icon(Iconsax.message),
               label: const Text("Contact Us"),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -231,13 +156,11 @@ class _TeamMember extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         padding: const EdgeInsets.all(12),
         height: 170,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ClipOval(
               child: Image.network(
@@ -245,41 +168,23 @@ class _TeamMember extends StatelessWidget {
                 width: 70,
                 height: 70,
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                },
                 errorBuilder: (_, __, ___) =>
                     const Icon(Iconsax.user, size: 28, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 8),
-            Flexible(
-              child: Text(
-                name,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+            Text(
+              name,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
               email,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.blueGrey,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

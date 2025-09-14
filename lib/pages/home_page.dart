@@ -56,7 +56,6 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  /// Banner
   Widget _buildBanner() => Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(20),
@@ -80,7 +79,6 @@ class HomePage extends StatelessWidget {
         ),
       );
 
-  /// Stats
   Widget _buildStats() {
     final Map<String, String> _tierOptions = {
       'student': 'Student',
@@ -129,7 +127,7 @@ class HomePage extends StatelessWidget {
             }
 
             return SizedBox(
-              height: 120, // fix cứng chiều cao
+              height: 120,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -186,7 +184,6 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  /// Curriculum Vitae Tips
   Widget _buildCurriculumVitaeTips(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -247,7 +244,6 @@ class HomePage extends StatelessWidget {
         ],
       );
 
-  /// Interview Questions
   Widget _buildInterviewQuestions(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -311,66 +307,65 @@ class HomePage extends StatelessWidget {
         ],
       );
 
-  /// Blog Section
   Widget _buildBlog(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-        child: Text(
-          "Recommended for You",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-      ),
-
-      Card(
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: InkWell(
-          onTap: () => Navigator.pushNamed(context, "/blog_detail"),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: SizedBox(
-                  height: 150,
-                  width: double.infinity,
-                  child: Center(
-                    child: Lottie.asset(
-                      "assets/lottie/interview.json",
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "5 Secrets to a Successful Interview",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: Text(
+              "Recommended for You",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: InkWell(
+              onTap: () => Navigator.pushNamed(context, "/blog_detail"),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SizedBox(
+                      height: 150,
+                      width: double.infinity,
+                      child: Center(
+                        child: Lottie.asset(
+                          "assets/lottie/interview.json",
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      "Insights from HR experts",
-                      style: TextStyle(color: Colors.grey),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "5 Secrets to a Successful Interview",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Insights from HR experts",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    ],
-  );
-  /// Interests
+        ],
+      );
+
   Widget _buildQuickInterests(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -394,7 +389,7 @@ class HomePage extends StatelessWidget {
               ),
               _InterestChip(
                 label: "Healthcare",
-                icon: Iconsax.heart, // thêm icon phù hợp
+                icon: Iconsax.heart,
                 onTap: () {
                   Navigator.pushNamed(
                     context,
@@ -426,7 +421,6 @@ class HomePage extends StatelessWidget {
         ],
       );
 
-  /// CTA
   Widget _buildCTA(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
