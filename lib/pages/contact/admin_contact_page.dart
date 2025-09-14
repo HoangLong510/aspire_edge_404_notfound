@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:iconsax/iconsax.dart';
 import 'smtp_email_service.dart';
 
 class AdminContactPage extends StatelessWidget {
@@ -10,7 +11,7 @@ class AdminContactPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Admin Inbox"),
-        leading: const Icon(Icons.inbox_rounded),
+        leading: const Icon(Iconsax.sms),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -21,8 +22,29 @@ class AdminContactPage extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (snapshot.hasError) {
+            return const Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Iconsax.danger, color: Colors.red, size: 20),
+                  SizedBox(width: 6),
+                  Text("Failed to load messages"),
+                ],
+              ),
+            );
+          }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No messages yet."));
+            return const Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Iconsax.message_remove, color: Colors.grey, size: 20),
+                  SizedBox(width: 6),
+                  Text("No messages yet"),
+                ],
+              ),
+            );
           }
 
           final docs = snapshot.data!.docs;
@@ -37,14 +59,14 @@ class AdminContactPage extends StatelessWidget {
               final createdAt = data["createdAt"]?.toDate();
 
               return ListTile(
-                leading: const Icon(Icons.person, color: Colors.blueAccent),
+                leading: const Icon(Iconsax.user, color: Colors.blueAccent),
                 title: Text(name),
                 subtitle: Text(
                   message,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                trailing: const Icon(Iconsax.arrow_right_3, size: 18),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -134,8 +156,10 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(success ? Icons.check_circle : Icons.error,
-                color: success ? Colors.green : Colors.red),
+            Icon(
+              success ? Iconsax.tick_circle : Iconsax.close_circle,
+              color: success ? Colors.green : Colors.red,
+            ),
             const SizedBox(width: 8),
             Text(success ? "Success" : "Error"),
           ],
@@ -162,7 +186,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.email_outlined, size: 18, color: Colors.blueGrey),
+                const Icon(Iconsax.sms, size: 18, color: Colors.blueGrey),
                 const SizedBox(width: 6),
                 Text(widget.email,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -171,7 +195,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.access_time, size: 18, color: Colors.blueGrey),
+                const Icon(Iconsax.clock, size: 18, color: Colors.blueGrey),
                 const SizedBox(width: 6),
                 Text(widget.createdAt ?? 'Unknown time'),
               ],
@@ -196,7 +220,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isSending ? null : _sendReply,
-                icon: const Icon(Icons.send),
+                icon: const Icon(Iconsax.send_2),
                 label: _isSending
                     ? const SizedBox(
                         height: 20,

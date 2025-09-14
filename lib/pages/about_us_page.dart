@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:lottie/lottie.dart';
+import 'package:flutter_map/flutter_map.dart' as fm;
 
 class AboutUsPage extends StatefulWidget {
   const AboutUsPage({super.key});
@@ -15,11 +17,11 @@ class _AboutUsPageState extends State<AboutUsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(centerTitle: true),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ==== Hero Header (nền trắng + logo to) ====
             Container(
               width: double.infinity,
               color: Colors.white,
@@ -27,27 +29,27 @@ class _AboutUsPageState extends State<AboutUsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.network(
-                    "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757581315/image-Photoroom_vrxff8.png",
-                    height: 200, // 👈 logo to hơn
+                  Lottie.asset(
+                    "assets/lottie/welcome.json",
+                    height: 200,
+                    repeat: true,
+                    animate: true,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 20),
                   const Text(
                     "About Us",
                     style: TextStyle(
-                      fontSize: 34,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
-                      letterSpacing: 1.5,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // ==== Description ====
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -58,11 +60,8 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 style: TextStyle(fontSize: 16, height: 1.5),
               ),
             ),
-
             const SizedBox(height: 20),
             const Divider(),
-
-            // ==== Team Photo ====
             const Text(
               "Meet Our Team",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -75,11 +74,23 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 height: 200,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const SizedBox(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
+                errorBuilder: (_, __, ___) => Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Icon(Iconsax.user_octagon, size: 50),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
-
-            // ==== Members (Grid 2 cột) ====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: GridView.count(
@@ -117,11 +128,8 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
             const Divider(),
-
-            // ==== Office ====
             const Text(
               "Our Office",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -132,31 +140,29 @@ class _AboutUsPageState extends State<AboutUsPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-
-            // ==== OpenStreetMap ====
             SizedBox(
               height: 300,
-              child: FlutterMap(
-                options: MapOptions(
+              child: fm.FlutterMap(
+                options: fm.MapOptions(
                   initialCenter: _officeLatLng,
                   initialZoom: 16,
                 ),
                 children: [
-                  TileLayer(
+                  fm.TileLayer(
                     urlTemplate:
                         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                     subdomains: const ['a', 'b', 'c'],
                   ),
-                  MarkerLayer(
+                  fm.MarkerLayer(
                     markers: [
-                      Marker(
+                      fm.Marker(
                         point: _officeLatLng,
                         width: 80,
                         height: 80,
                         child: const Icon(
-                          Icons.location_on,
+                          Iconsax.location,
                           color: Colors.red,
-                          size: 40,
+                          size: 38,
                         ),
                       ),
                     ],
@@ -164,14 +170,11 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // ==== Email ====
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
-                Icon(Icons.email_outlined, color: Colors.blueGrey),
+                Icon(Iconsax.sms, color: Colors.blueGrey),
                 SizedBox(width: 8),
                 Text(
                   "team02aptech@gmail.com",
@@ -179,15 +182,12 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            // ==== Contact Us Button ====
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pushNamed(context, "/contact_us");
               },
-              icon: const Icon(Icons.mail_outline),
+              icon: const Icon(Iconsax.message),
               label: const Text("Contact Us"),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
@@ -199,12 +199,9 @@ class _AboutUsPageState extends State<AboutUsPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // ==== Slogan ====
             const Text(
-              "✨ Dream Big. Work Smart. Aspire with Edge. ✨",
+              "Dream Big. Work Smart. Aspire with Edge.",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -242,7 +239,26 @@ class _TeamMember extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(backgroundImage: NetworkImage(avatarUrl), radius: 35),
+            ClipOval(
+              child: Image.network(
+                avatarUrl,
+                width: 70,
+                height: 70,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Iconsax.user, size: 28, color: Colors.grey),
+              ),
+            ),
             const SizedBox(height: 8),
             Flexible(
               child: Text(

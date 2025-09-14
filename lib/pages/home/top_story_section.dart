@@ -4,9 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-/// ===========================
-/// OpenAI config
-/// ===========================
 const String kOpenAIBaseUrl = 'https://api.openai.com/v1';
 const String kOpenAIModel = 'gpt-4o-mini';
 final String kOpenAIApiKey = EnvConfig.openAIApiKey;
@@ -45,6 +42,8 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
         stories.add({
           "id": doc.id,
           "title": data["subTitle"] ?? "",
+          "mainTitle": data["mainTitle"] ?? "",
+          "bannerUrl": data["bannerUrl"] ?? "",
           "userId": data["userId"],
           "likes": likesSnap.size,
           "commentCount": commentsSnap.size,
@@ -59,13 +58,9 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
         return;
       }
 
-      // 👉 Gọi GPT để rank
       final ranked = await _callOpenAIForTopStories(stories);
-
-      // lấy top 5 id
       final topIds = ranked.take(5).map((e) => e["storyId"]).toList();
 
-      // join lại thông tin user
       List<Map<String, dynamic>> tmp = [];
       for (final story in stories.where((s) => topIds.contains(s["id"]))) {
         final userSnap = await FirebaseFirestore.instance
@@ -76,6 +71,8 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
         tmp.add({
           "id": story["id"],
           "title": story["title"],
+          "mainTitle": story["mainTitle"],
+          "bannerUrl": story["bannerUrl"],
           "name": user["Name"] ?? "Anonymous",
           "avatar": user["AvatarUrl"] ?? "",
           "likes": story["likes"],
@@ -94,8 +91,7 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
   Future<List<Map<String, dynamic>>> _callOpenAIForTopStories(
       List<Map<String, dynamic>> stories) async {
     if (kOpenAIApiKey.trim().isEmpty) {
-      throw Exception(
-          'Missing OPENAI_API_KEY. Pass it via --dart-define=OPENAI_API_KEY=...');
+      throw Exception('Missing OPENAI_API_KEY');
     }
 
     final systemPrompt = '''
@@ -119,10 +115,7 @@ Return ONLY JSON in this schema:
       'response_format': {'type': 'json_object'},
       'messages': [
         {'role': 'system', 'content': systemPrompt},
-        {
-          'role': 'user',
-          'content': jsonEncode({"stories": stories}),
-        }
+        {'role': 'user', 'content': jsonEncode({"stories": stories})}
       ],
     });
 
@@ -133,9 +126,8 @@ Return ONLY JSON in this schema:
 
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
     final choices = (decoded['choices'] as List?) ?? [];
-    final content = choices.isNotEmpty
-        ? (choices.first['message']?['content'] ?? '')
-        : '';
+    final content =
+        choices.isNotEmpty ? (choices.first['message']?['content'] ?? '') : '';
 
     final parsed = jsonDecode(content);
     final rawMatches =
@@ -170,7 +162,7 @@ Return ONLY JSON in this schema:
           ),
         ),
         SizedBox(
-          height: 200,
+          height: 260,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _stories.length,
@@ -186,10 +178,9 @@ Return ONLY JSON in this schema:
                   );
                 },
                 child: Container(
-                  width: 240,
+                  width: 260,
                   margin:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  padding: const EdgeInsets.all(12),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -203,48 +194,104 @@ Return ONLY JSON in this schema:
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundImage: (s["avatar"] as String).isNotEmpty
-                                ? NetworkImage(s["avatar"])
-                                : null,
-                            radius: 22,
-                            child: (s["avatar"] as String).isEmpty
-                                ? const Icon(Icons.person)
-                                : null,
+                      // Banner
+                      if ((s["bannerUrl"] as String).isNotEmpty)
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16)),
+                          child: Image.network(
+                            s["bannerUrl"],
+                            height: 100,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              s["name"],
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
-                            ),
+                        ),
+
+                      // Nội dung
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundImage:
+                                        (s["avatar"] as String).isNotEmpty
+                                            ? NetworkImage(s["avatar"])
+                                            : null,
+                                    child: (s["avatar"] as String).isEmpty
+                                        ? const Icon(Icons.person)
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      s["name"],
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                s["mainTitle"],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+
+                              // Subtitle fade nếu quá dài
+                              Flexible(
+                                child: ShaderMask(
+                                  shaderCallback: (Rect bounds) {
+                                    return const LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [Colors.black, Colors.transparent],
+                                    ).createShader(bounds);
+                                  },
+                                  blendMode: BlendMode.dstIn,
+                                  child: Text(
+                                    s["title"],
+                                    maxLines: 2,
+                                    overflow: TextOverflow.fade,
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700]),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        s["title"],
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: Colors.grey[700], fontSize: 13),
-                      ),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          const Icon(Icons.favorite,
-                              size: 16, color: Colors.red),
-                          const SizedBox(width: 4),
-                          Text("${s["likes"]}"),
-                          const SizedBox(width: 16),
-                          const Icon(Icons.comment,
-                              size: 16, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text("${s["commentCount"]}"),
-                        ],
+
+                      // Like + Comment
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.favorite,
+                                size: 16, color: Colors.red),
+                            const SizedBox(width: 4),
+                            Text("${s["likes"]}"),
+                            const SizedBox(width: 16),
+                            const Icon(Icons.comment,
+                                size: 16, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Text("${s["commentCount"]}"),
+                          ],
+                        ),
                       ),
                     ],
                   ),
