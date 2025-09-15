@@ -20,13 +20,11 @@ class _SeedBlog {
   final String content;
   final List<String> images;
   final String? video;
-  final String? careerId;
   const _SeedBlog({
     required this.title,
     required this.content,
     this.images = const [],
     this.video,
-    this.careerId,
   });
 }
 
@@ -335,7 +333,6 @@ Map<String, dynamic> _buildDoc({
   return {
     'Title': seed.title,
     'ContentMarkdown': seed.content,
-    'CareerId': seed.careerId,
     'ImageUrls': seed.images,
     'VideoUrl': seed.video,
     'AuthorId': authorId,

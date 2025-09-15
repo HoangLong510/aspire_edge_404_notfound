@@ -94,7 +94,7 @@ class _MyAppState extends State<MyApp> {
         fontFamily: 'Poppins',
         useMaterial3: true,
       ),
-      initialRoute: FirebaseAuth.instance.currentUser == null ? '/login' : '/',
+      initialRoute: '/',
       routes: getAppRoutes(isAdmin, _withLayout),
     );
   }

@@ -82,6 +82,15 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          color: Theme.of(context).primaryColor,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
@@ -90,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 50),
+                const SizedBox(height: 20),
                 Text(
                   'Welcome Back!',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
@@ -119,8 +128,9 @@ class _LoginPageState extends State<LoginPage> {
                   validator: (value) {
                     final v = value?.trim() ?? '';
                     if (v.isEmpty) return 'Please enter your email';
-                    if (!_emailRegex.hasMatch(v))
+                    if (!_emailRegex.hasMatch(v)) {
                       return 'Please enter a valid email';
+                    }
                     return null;
                   },
                 ),

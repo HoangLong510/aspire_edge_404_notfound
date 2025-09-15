@@ -17,14 +17,12 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final storyRef =
-        FirebaseFirestore.instance.collection("Stories").doc(widget.storyId);
+    final storyRef = FirebaseFirestore.instance
+        .collection("Stories")
+        .doc(widget.storyId);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Story Detail"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("Story Detail"), centerTitle: true),
       body: StreamBuilder<DocumentSnapshot>(
         stream: storyRef.snapshots(),
         builder: (ctx, snap) {
@@ -66,18 +64,14 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                     children: [
                       Text(
                         mainTitle,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
+                        style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       if (subTitle.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           subTitle,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: Colors.grey[600]),
                         ),
                       ],
@@ -91,7 +85,8 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                           if (userSnap.connectionState ==
                               ConnectionState.waiting) {
                             return const CircularProgressIndicator(
-                                strokeWidth: 2);
+                              strokeWidth: 2,
+                            );
                           }
                           if (!userSnap.hasData || !userSnap.data!.exists) {
                             return const Text("Author not found");
@@ -105,11 +100,13 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                             children: [
                               CircleAvatar(
                                 radius: 22,
-                                backgroundImage: (u?["AvatarUrl"] != null &&
+                                backgroundImage:
+                                    (u?["AvatarUrl"] != null &&
                                         (u?["AvatarUrl"] as String).isNotEmpty)
                                     ? NetworkImage(u!["AvatarUrl"])
                                     : null,
-                                child: (u?["AvatarUrl"] == null ||
+                                child:
+                                    (u?["AvatarUrl"] == null ||
                                         (u?["AvatarUrl"] as String).isEmpty)
                                     ? const Icon(Iconsax.user)
                                     : null,
@@ -121,8 +118,9 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
                                   Text(
                                     u?["Name"] ?? "Unknown",
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
                                   ),
                                   Text(
                                     u?["E-mail"] ?? "No email",
@@ -214,7 +212,10 @@ class _ActionBar extends StatelessWidget {
                   size: 26,
                 ),
                 onPressed: () async {
-                  if (uid == null) return;
+                  if (uid == null) {
+                    Navigator.pushNamed(context, "/login");
+                    return;
+                  }
                   final likeDoc = storyRef.collection("likes").doc(uid);
 
                   if (isLiked) {
@@ -260,8 +261,7 @@ class _ActionBar extends StatelessWidget {
               final commentCount = (data["commentCount"] ?? 0) as int;
               return TextButton.icon(
                 onPressed: onToggleComments,
-                icon: const Icon(Iconsax.message,
-                    size: 22, color: Colors.grey),
+                icon: const Icon(Iconsax.message, size: 22, color: Colors.grey),
                 label: Text(
                   showComments
                       ? "Hide Comments ($commentCount)"
@@ -291,7 +291,13 @@ class _CommentsSectionState extends State<_CommentsSection> {
 
   Future<void> _addComment() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || controller.text.trim().isEmpty) return;
+    if (uid == null) {
+      if (mounted) {
+        Navigator.pushNamed(context, "/login");
+      }
+      return;
+    }
+    if (controller.text.trim().isEmpty) return;
 
     await widget.storyRef.collection("comments").add({
       "userId": uid,
@@ -299,9 +305,7 @@ class _CommentsSectionState extends State<_CommentsSection> {
       "createdAt": FieldValue.serverTimestamp(),
     });
 
-    await widget.storyRef.update({
-      "commentCount": FieldValue.increment(1),
-    });
+    await widget.storyRef.update({"commentCount": FieldValue.increment(1)});
 
     controller.clear();
   }
@@ -325,8 +329,14 @@ class _CommentsSectionState extends State<_CommentsSection> {
               DropdownButton<String>(
                 value: sortOrder,
                 items: const [
-                  DropdownMenuItem(value: "newest", child: Text("Newest first")),
-                  DropdownMenuItem(value: "oldest", child: Text("Oldest first")),
+                  DropdownMenuItem(
+                    value: "newest",
+                    child: Text("Newest first"),
+                  ),
+                  DropdownMenuItem(
+                    value: "oldest",
+                    child: Text("Oldest first"),
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() {
@@ -367,24 +377,24 @@ class _CommentsSectionState extends State<_CommentsSection> {
                         .doc(userId)
                         .get(),
                     builder: (ctx, userSnap) {
-                      if (userSnap.connectionState ==
-                          ConnectionState.waiting) {
+                      if (userSnap.connectionState == ConnectionState.waiting) {
                         return const ListTile(
                           leading: CircleAvatar(child: Icon(Iconsax.user)),
                           title: Text("Loading..."),
                         );
                       }
-                      final u =
-                          userSnap.data!.data() as Map<String, dynamic>?;
+                      final u = userSnap.data!.data() as Map<String, dynamic>?;
 
                       return ListTile(
                         leading: CircleAvatar(
                           radius: 18,
-                          backgroundImage: (u?["AvatarUrl"] != null &&
+                          backgroundImage:
+                              (u?["AvatarUrl"] != null &&
                                   (u?["AvatarUrl"] as String).isNotEmpty)
                               ? NetworkImage(u!["AvatarUrl"])
                               : null,
-                          child: (u?["AvatarUrl"] == null ||
+                          child:
+                              (u?["AvatarUrl"] == null ||
                                   (u?["AvatarUrl"] as String).isEmpty)
                               ? const Icon(Iconsax.user)
                               : null,
@@ -392,7 +402,9 @@ class _CommentsSectionState extends State<_CommentsSection> {
                         title: Text(
                           u?["Name"] ?? "Unknown",
                           style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,7 +413,9 @@ class _CommentsSectionState extends State<_CommentsSection> {
                             Text(
                               time,
                               style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey),
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -422,7 +436,9 @@ class _CommentsSectionState extends State<_CommentsSection> {
                     filled: true,
                     fillColor: Colors.grey[100],
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
                       borderSide: BorderSide.none,
@@ -434,8 +450,11 @@ class _CommentsSectionState extends State<_CommentsSection> {
               CircleAvatar(
                 backgroundColor: Colors.blueAccent,
                 child: IconButton(
-                  icon: const Icon(Iconsax.send_2,
-                      color: Colors.white, size: 18),
+                  icon: const Icon(
+                    Iconsax.send_2,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                   onPressed: _addComment,
                 ),
               ),

@@ -269,8 +269,13 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   if (!_isAdmin) ...[
                     if (!_hasMyFeedback)
                       ElevatedButton.icon(
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed('/feedback_form'),
+                        onPressed: () {
+                          if (_myUid == null) {
+                            Navigator.of(context).pushNamed('/login');
+                          } else {
+                            Navigator.of(context).pushNamed('/feedback_form');
+                          }
+                        },
                         icon: const Icon(Icons.add_comment_outlined),
                         label: const Text('Add Feedback'),
                         style: ElevatedButton.styleFrom(

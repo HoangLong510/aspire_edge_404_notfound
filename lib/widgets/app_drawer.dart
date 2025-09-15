@@ -69,11 +69,6 @@ class AppDrawer extends StatelessWidget {
 
   static final List<_DrawerItem> _supportItems = [
     const _DrawerItem(
-      title: 'Notifications',
-      icon: Icons.notifications_rounded,
-      route: '/notifications',
-    ),
-    const _DrawerItem(
       title: 'Contact Us',
       icon: Icons.contact_mail_rounded,
       route: '/contact_us',

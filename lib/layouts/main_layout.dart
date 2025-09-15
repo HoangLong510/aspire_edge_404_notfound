@@ -42,15 +42,11 @@ class _MainLayoutState extends State<MainLayout> {
     try {
       await _auth.signOut();
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
       }
     }
   }
@@ -61,10 +57,7 @@ class _MainLayoutState extends State<MainLayout> {
       builder: (dialogContext) => AlertDialog(
         title: Text(
           'Confirm Logout',
-          style: TextStyle(
-            color: Theme.of(context).primaryColor,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
         ),
         content: const Text('Are you sure you want to log out?'),
         actions: <Widget>[
@@ -86,32 +79,25 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    if (_auth.currentUser == null) {
+      return _buildMainScaffold('Guest', 'Not logged in', '', '', loggedIn: false);
+    }
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _userStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-
         if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
-            body: const Center(
-              child: Text('Error loading user data. Please try again.'),
-            ),
-          );
+          return _buildMainScaffold('Guest', 'Not logged in', '', '', loggedIn: false);
         }
-
         final userData = snapshot.data!.data()!;
         final String fullName = (userData['Name'] ?? 'Guest').toString();
         final String email = _auth.currentUser?.email ?? 'No email';
         final String avatarUrl = (userData['AvatarUrl'] ?? '').toString();
         final String tier = (userData['Tier'] ?? '').toString();
-
         final String? uid = _auth.currentUser?.uid;
-        Widget scaffold = _buildMainScaffold(fullName, email, avatarUrl, tier);
+        Widget scaffold = _buildMainScaffold(fullName, email, avatarUrl, tier, loggedIn: true);
         if (uid != null) {
           scaffold = NotificationsListener(uid: uid, child: scaffold);
         }
@@ -120,36 +106,28 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Scaffold _buildMainScaffold(
-    String fullName,
-    String email,
-    String avatarUrl,
-    String tier,
-  ) {
+  Scaffold _buildMainScaffold(String fullName, String email, String avatarUrl, String tier, {required bool loggedIn}) {
     final color = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         elevation: 1,
-        title: const Text(
-          'Aspire Edge',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        title: const Text('Aspire Edge', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
         actions: [
-          if (_auth.currentUser != null)
-            NotificationBell(uid: _auth.currentUser!.uid),
+          if (loggedIn && _auth.currentUser != null) NotificationBell(uid: _auth.currentUser!.uid),
           _UserMenuAnchor(
             fullName: fullName,
             email: email,
             avatarUrl: avatarUrl,
             tier: tier,
+            loggedIn: loggedIn,
             onProfile: () => Navigator.of(context).pushNamed('/profile'),
-            onChangePassword: () =>
-                Navigator.of(context).pushNamed('/change-password'),
+            onChangePassword: () => Navigator.of(context).pushNamed('/change-password'),
             onLogout: _showLogoutConfirmationDialog,
+            onLogin: () => Navigator.of(context).pushNamed('/login'),
+            onRegister: () => Navigator.of(context).pushNamed('/register'),
           ),
         ],
       ),
@@ -172,18 +150,24 @@ class _UserMenuAnchor extends StatefulWidget {
     required this.email,
     required this.avatarUrl,
     required this.tier,
+    required this.loggedIn,
     required this.onProfile,
     required this.onChangePassword,
     required this.onLogout,
+    required this.onLogin,
+    required this.onRegister,
   });
 
   final String fullName;
   final String email;
   final String avatarUrl;
   final String tier;
+  final bool loggedIn;
   final VoidCallback onProfile;
   final VoidCallback onChangePassword;
   final VoidCallback onLogout;
+  final VoidCallback onLogin;
+  final VoidCallback onRegister;
 
   @override
   State<_UserMenuAnchor> createState() => _UserMenuAnchorState();
@@ -204,7 +188,6 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
     return Padding(
       padding: const EdgeInsets.only(right: 12),
       child: MenuTheme(
@@ -213,91 +196,87 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
             backgroundColor: MaterialStatePropertyAll(cs.surface),
             surfaceTintColor: MaterialStatePropertyAll(cs.surfaceTint),
             elevation: const MaterialStatePropertyAll(8),
-            shape: MaterialStatePropertyAll(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            padding: const MaterialStatePropertyAll(
-              EdgeInsets.symmetric(vertical: 8),
-            ),
+            shape: MaterialStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+            padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(vertical: 8)),
           ),
         ),
         child: MenuAnchor(
           controller: _menuController,
           alignmentOffset: const Offset(0, 8),
-          menuChildren: [
-            MenuItemButton(
-              onPressed: () {
-                _menuController.close();
-                widget.onProfile();
-              },
-              child: SizedBox(
-                width: 260,
-                child: Row(
-                  children: [
-                    _CircleAvatar(
-                      imageUrl: widget.avatarUrl,
-                      fallbackText: _initials(widget.fullName),
-                      radius: 18,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          menuChildren: widget.loggedIn
+              ? [
+                  MenuItemButton(
+                    onPressed: () {
+                      _menuController.close();
+                      widget.onProfile();
+                    },
+                    child: SizedBox(
+                      width: 260,
+                      child: Row(
                         children: [
-                          Text(
-                            widget.fullName,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: cs.onSurface,
+                          _CircleAvatar(imageUrl: widget.avatarUrl, fallbackText: _initials(widget.fullName), radius: 18),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(widget.fullName, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800, color: cs.onSurface)),
+                                const SizedBox(height: 2),
+                                Text(widget.email, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.email,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
+                          Icon(Icons.chevron_right, color: theme.primaryColor),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: theme.primaryColor),
-                  ],
-                ),
-              ),
-            ),
-            const Divider(height: 8, thickness: 1),
-            MenuItemButton(
-              onPressed: () {
-                _menuController.close();
-                widget.onChangePassword();
-              },
-              leadingIcon: Icon(Icons.lock_outline, color: cs.onSurface),
-              child: const Text('Change Password'),
-            ),
-            if (widget.tier.toLowerCase() != 'admin')
-              MenuItemButton(
-                onPressed: () {
-                  _menuController.close();
-                  Navigator.of(context).pushNamed('/my_stories');
-                },
-                leadingIcon: Icon(Icons.menu_book, color: cs.onSurface),
-                child: const Text('My Stories'),
-              ),
-            MenuItemButton(
-              onPressed: () {
-                _menuController.close();
-                widget.onLogout();
-              },
-              leadingIcon: const Icon(Icons.logout, color: Colors.red),
-              style: ButtonStyle(
-                foregroundColor: MaterialStatePropertyAll(Colors.red.shade700),
-              ),
-              child: const Text('Logout'),
-            ),
-          ],
+                  ),
+                  const Divider(height: 8, thickness: 1),
+                  MenuItemButton(
+                    onPressed: () {
+                      _menuController.close();
+                      widget.onChangePassword();
+                    },
+                    leadingIcon: Icon(Icons.lock_outline, color: cs.onSurface),
+                    child: const Text('Change Password'),
+                  ),
+                  if (widget.tier.toLowerCase() != 'admin')
+                    MenuItemButton(
+                      onPressed: () {
+                        _menuController.close();
+                        Navigator.of(context).pushNamed('/my_stories');
+                      },
+                      leadingIcon: Icon(Icons.menu_book, color: cs.onSurface),
+                      child: const Text('My Stories'),
+                    ),
+                  MenuItemButton(
+                    onPressed: () {
+                      _menuController.close();
+                      widget.onLogout();
+                    },
+                    leadingIcon: const Icon(Icons.logout, color: Colors.red),
+                    style: ButtonStyle(foregroundColor: MaterialStatePropertyAll(Colors.red.shade700)),
+                    child: const Text('Logout'),
+                  ),
+                ]
+              : [
+                  MenuItemButton(
+                    onPressed: () {
+                      _menuController.close();
+                      widget.onLogin();
+                    },
+                    leadingIcon: const Icon(Icons.login),
+                    child: const Text('Login'),
+                  ),
+                  MenuItemButton(
+                    onPressed: () {
+                      _menuController.close();
+                      widget.onRegister();
+                    },
+                    leadingIcon: const Icon(Icons.app_registration),
+                    child: const Text('Register'),
+                  ),
+                ],
           builder: (context, controller, child) {
             return Material(
               color: Colors.transparent,
@@ -306,10 +285,13 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
                 onTap: _toggleMenu,
                 splashColor: Colors.white.withOpacity(.15),
                 highlightColor: Colors.white.withOpacity(.10),
-                child: _PillAvatarButton(
-                  avatarUrl: widget.avatarUrl,
-                  fullName: widget.fullName,
-                ),
+                child: widget.loggedIn
+                    ? _PillAvatarButton(avatarUrl: widget.avatarUrl, fullName: widget.fullName)
+                    : Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(.12), borderRadius: BorderRadius.circular(999)),
+                        child: const Icon(Icons.person, color: Colors.white),
+                      ),
               ),
             );
           },
@@ -329,7 +311,6 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
 
 class _PillAvatarButton extends StatelessWidget {
   const _PillAvatarButton({required this.avatarUrl, required this.fullName});
-
   final String avatarUrl;
   final String fullName;
 
@@ -337,18 +318,11 @@ class _PillAvatarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(6, 6, 2, 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(.12), borderRadius: BorderRadius.circular(999)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _CircleAvatar(
-            imageUrl: avatarUrl,
-            fallbackText: _initials(fullName),
-            radius: 16,
-          ),
+          _CircleAvatar(imageUrl: avatarUrl, fallbackText: _initials(fullName), radius: 16),
           const SizedBox(width: 6),
           const Icon(Icons.expand_more, color: Colors.white),
         ],
@@ -366,12 +340,7 @@ class _PillAvatarButton extends StatelessWidget {
 }
 
 class _CircleAvatar extends StatelessWidget {
-  const _CircleAvatar({
-    required this.imageUrl,
-    required this.fallbackText,
-    this.radius = 16,
-  });
-
+  const _CircleAvatar({required this.imageUrl, required this.fallbackText, this.radius = 16});
   final String imageUrl;
   final String fallbackText;
   final double radius;
@@ -380,21 +349,13 @@ class _CircleAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasImage = imageUrl.isNotEmpty;
     final primary = Theme.of(context).primaryColor;
-
     return CircleAvatar(
       radius: radius,
       backgroundColor: primary.withOpacity(.1),
       backgroundImage: hasImage ? NetworkImage(imageUrl) : null,
       child: hasImage
           ? null
-          : Text(
-              fallbackText,
-              style: TextStyle(
-                color: primary,
-                fontWeight: FontWeight.w800,
-                fontSize: radius - 4,
-              ),
-            ),
+          : Text(fallbackText, style: TextStyle(color: primary, fontWeight: FontWeight.w800, fontSize: radius - 4)),
     );
   }
 }
