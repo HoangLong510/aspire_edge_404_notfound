@@ -92,7 +92,14 @@ class _CareerManagePageState extends State<CareerManagePage> {
 
   Future<void> _toggleFavorite(String careerId) async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please log in to save favorites."),
+        ),
+      );
+      return;
+    }
 
     final ref = _firestore.collection('Users').doc(user.uid);
     final isFav = _favorites.contains(careerId);
@@ -117,7 +124,11 @@ class _CareerManagePageState extends State<CareerManagePage> {
     if (user != null) {
       final doc = await _firestore.collection("Users").doc(user.uid).get();
       setState(() {
-        _userTier = doc["Tier"];
+        _userTier = doc.data()?["Tier"] ?? "guest";
+      });
+    } else {
+      setState(() {
+        _userTier = "guest"; // chưa login → guest
       });
     }
   }
@@ -138,6 +149,8 @@ class _CareerManagePageState extends State<CareerManagePage> {
     if (_userTier == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    final isGuest = _auth.currentUser == null;
 
     return Scaffold(
       body: LayoutBuilder(
@@ -220,278 +233,7 @@ class _CareerManagePageState extends State<CareerManagePage> {
                       constraints: const BoxConstraints(maxWidth: 1100),
                       child: Column(
                         children: [
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: primary.withOpacity(0.18),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primary.withOpacity(0.08),
-                                  blurRadius: 24,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: primary.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Icon(
-                                    Icons.work,
-                                    color: primary,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Careers",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        "List of Careers in system",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      LayoutBuilder(
-                                        builder: (ctx, cst) {
-                                          final narrow = cst.maxWidth < 620;
-
-                                          Widget industryFilter() {
-                                            final mapById =
-                                                <String, IndustryDef>{};
-                                            for (final def in INDUSTRIES) {
-                                              mapById[def.id] = def;
-                                            }
-                                            final industryDefs =
-                                                mapById.values.toList()..sort(
-                                                  (a, b) => a.order.compareTo(
-                                                    b.order,
-                                                  ),
-                                                );
-
-                                            return Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Flexible(
-                                                  child: ConstrainedBox(
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                          minWidth: 160,
-                                                          maxWidth: 260,
-                                                        ),
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 10,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: primary
-                                                            .withOpacity(0.06),
-                                                        border: Border.all(
-                                                          color: primary
-                                                              .withOpacity(
-                                                                0.25,
-                                                              ),
-                                                        ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              12,
-                                                            ),
-                                                      ),
-                                                      child: DropdownButtonHideUnderline(
-                                                        child: DropdownButton<String>(
-                                                          isExpanded: true,
-                                                          value:
-                                                              (_selectedIndustryId !=
-                                                                      null &&
-                                                                  validIds.contains(
-                                                                    _selectedIndustryId,
-                                                                  ))
-                                                              ? _selectedIndustryId
-                                                              : null,
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .keyboard_arrow_down_rounded,
-                                                          ),
-                                                          items:
-                                                              <
-                                                                DropdownMenuItem<
-                                                                  String
-                                                                >
-                                                              >[
-                                                                const DropdownMenuItem<
-                                                                  String
-                                                                >(
-                                                                  value: null,
-                                                                  child: Text(
-                                                                    "All industries",
-                                                                  ),
-                                                                ),
-                                                                ...industryDefs.map(
-                                                                  (
-                                                                    def,
-                                                                  ) => DropdownMenuItem<String>(
-                                                                    value:
-                                                                        def.id,
-                                                                    child: Row(
-                                                                      children: [
-                                                                        Icon(
-                                                                          def.icon,
-                                                                          size:
-                                                                              16,
-                                                                          color:
-                                                                              primary,
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          width:
-                                                                              6,
-                                                                        ),
-                                                                        Flexible(
-                                                                          child: Text(
-                                                                            def.name,
-                                                                            overflow:
-                                                                                TextOverflow.ellipsis,
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                          onChanged: (v) =>
-                                                              setState(
-                                                                () =>
-                                                                    _selectedIndustryId =
-                                                                        v,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                if (_selectedIndustryId !=
-                                                    null) ...[
-                                                  const SizedBox(width: 6),
-                                                  IconButton(
-                                                    tooltip:
-                                                        "Clear industry filter",
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                          minWidth: 36,
-                                                          minHeight: 36,
-                                                        ),
-                                                    padding: EdgeInsets.zero,
-                                                    onPressed: () => setState(
-                                                      () =>
-                                                          _selectedIndustryId =
-                                                              null,
-                                                    ),
-                                                    icon: const Icon(
-                                                      Icons.clear,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            );
-                                          }
-
-                                          final searchBox = TextField(
-                                            controller: _searchTitleCtrl,
-                                            decoration: InputDecoration(
-                                              hintText: "Search by Title…",
-                                              prefixIcon: const Icon(
-                                                Icons.search,
-                                              ),
-                                              isDense: true,
-                                              filled: true,
-                                              fillColor: primary.withOpacity(
-                                                0.06,
-                                              ),
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              enabledBorder: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                borderSide: BorderSide(
-                                                  color: primary.withOpacity(
-                                                    0.25,
-                                                  ),
-                                                ),
-                                              ),
-                                              focusedBorder: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                borderSide: BorderSide(
-                                                  color: primary,
-                                                  width: 1.6,
-                                                ),
-                                              ),
-                                              contentPadding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 10,
-                                                  ),
-                                            ),
-                                          );
-
-                                          return narrow
-                                              ? Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment
-                                                          .stretch,
-                                                  children: [
-                                                    searchBox,
-                                                    const SizedBox(height: 10),
-                                                    industryFilter(),
-                                                  ],
-                                                )
-                                              : Row(
-                                                  children: [
-                                                    Expanded(child: searchBox),
-                                                    const SizedBox(width: 12),
-                                                    SizedBox(
-                                                      width: 260,
-                                                      child: industryFilter(),
-                                                    ),
-                                                  ],
-                                                );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          _buildHeader(primary, validIds),
                           const SizedBox(height: 16),
                           LayoutBuilder(
                             builder: (context, cst) {
@@ -503,8 +245,12 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                   itemCount: visible.length,
                                   separatorBuilder: (_, __) =>
                                       const SizedBox(height: 10),
-                                  itemBuilder: (ctx, i) =>
-                                      _careerCard(context, visible[i], primary),
+                                  itemBuilder: (ctx, i) => _careerCard(
+                                    context,
+                                    visible[i],
+                                    primary,
+                                    isGuest,
+                                  ),
                                 );
                               }
                               final crossCount = constraints.maxWidth >= 1200
@@ -521,8 +267,12 @@ class _CareerManagePageState extends State<CareerManagePage> {
                                       childAspectRatio: 3.2,
                                     ),
                                 itemCount: visible.length,
-                                itemBuilder: (ctx, i) =>
-                                    _careerCard(context, visible[i], primary),
+                                itemBuilder: (ctx, i) => _careerCard(
+                                  context,
+                                  visible[i],
+                                  primary,
+                                  isGuest,
+                                ),
                               );
                             },
                           ),
@@ -552,10 +302,189 @@ class _CareerManagePageState extends State<CareerManagePage> {
     );
   }
 
+  Widget _buildHeader(Color primary, Set<String> validIds) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primary.withOpacity(0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.work, color: primary, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Careers",
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "List of Careers in system",
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                LayoutBuilder(
+                  builder: (ctx, cst) {
+                    final narrow = cst.maxWidth < 620;
+                    final searchBox = TextField(
+                      controller: _searchTitleCtrl,
+                      decoration: InputDecoration(
+                        hintText: "Search by Title…",
+                        prefixIcon: const Icon(Icons.search),
+                        isDense: true,
+                        filled: true,
+                        fillColor: primary.withOpacity(0.06),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: primary.withOpacity(0.25),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: primary, width: 1.6),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                      ),
+                    );
+
+                    return narrow
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              searchBox,
+                              const SizedBox(height: 10),
+                              _industryFilter(validIds, primary),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(child: searchBox),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 260,
+                                child: _industryFilter(validIds, primary),
+                              ),
+                            ],
+                          );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _industryFilter(Set<String> validIds, Color primary) {
+    final mapById = <String, IndustryDef>{};
+    for (final def in INDUSTRIES) {
+      mapById[def.id] = def;
+    }
+    final industryDefs = mapById.values.toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 160, maxWidth: 260),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: primary.withOpacity(0.06),
+                border: Border.all(color: primary.withOpacity(0.25)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value:
+                      (_selectedIndustryId != null &&
+                          validIds.contains(_selectedIndustryId))
+                      ? _selectedIndustryId
+                      : null,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  items: <DropdownMenuItem<String>>[
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text("All industries"),
+                    ),
+                    ...industryDefs.map(
+                      (def) => DropdownMenuItem<String>(
+                        value: def.id,
+                        child: Row(
+                          children: [
+                            Icon(def.icon, size: 16, color: primary),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                def.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => _selectedIndustryId = v),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (_selectedIndustryId != null) ...[
+          const SizedBox(width: 6),
+          IconButton(
+            tooltip: "Clear industry filter",
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: EdgeInsets.zero,
+            onPressed: () => setState(() => _selectedIndustryId = null),
+            icon: const Icon(Icons.clear),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _careerCard(
     BuildContext context,
     DocumentSnapshot career,
     Color primary,
+    bool isGuest,
   ) {
     final data = career.data() as Map<String, dynamic>? ?? {};
     final title = (data['Title'] ?? '').toString().trim();
@@ -640,12 +569,24 @@ class _CareerManagePageState extends State<CareerManagePage> {
                           )
                         else
                           IconButton(
-                            tooltip: isFav ? "Remove favorite" : "Favorite",
+                            tooltip: isFav
+                                ? "Remove favorite"
+                                : (isGuest ? "Login to favorite" : "Favorite"),
                             icon: Icon(
                               isFav ? Icons.favorite : Icons.favorite_border,
-                              color: Colors.redAccent,
+                              color: isGuest ? Colors.grey : Colors.redAccent,
                             ),
-                            onPressed: () => _toggleFavorite(career.id),
+                            onPressed: isGuest
+                                ? () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Vui lòng đăng nhập để lưu mục yêu thích.",
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                : () => _toggleFavorite(career.id),
                           ),
                       ],
                     ),

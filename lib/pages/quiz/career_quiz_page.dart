@@ -31,7 +31,13 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
     });
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) throw Exception("No signed-in user.");
+      if (uid == null) {
+        setState(() {
+          _loading = false;
+          _matches = [];
+        });
+        return;
+      }
 
       final userSnap = await FirebaseFirestore.instance
           .collection('Users')
@@ -74,7 +80,6 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
       }
 
       matches.sort((a, b) => b.fitPercent.compareTo(a.fitPercent));
-
       final filtered = matches.where((e) => e.fitPercent > 50).take(5).toList();
 
       setState(() {
@@ -182,6 +187,7 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
     final primary = Theme.of(context).primaryColor;
+    final isLoggedIn = FirebaseAuth.instance.currentUser != null;
 
     return Scaffold(
       body: SafeArea(
@@ -210,6 +216,8 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
                             ],
                           ),
                         )
+                      : !isLoggedIn
+                      ? _buildLoginPrompt(context)
                       : _matches.isEmpty
                       ? _buildQuizIntro(context)
                       : RefreshIndicator(
@@ -257,14 +265,16 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await Navigator.of(context).pushNamed('/answer_quiz');
-          _load();
-        },
-        label: Text(_matches.isEmpty ? "Start Quiz" : "Retake Quiz"),
-        icon: const Icon(Icons.quiz_outlined),
-      ),
+      floatingActionButton: isLoggedIn
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                await Navigator.of(context).pushNamed('/answer_quiz');
+                _load();
+              },
+              label: Text(_matches.isEmpty ? "Start Quiz" : "Retake Quiz"),
+              icon: const Icon(Icons.quiz_outlined),
+            )
+          : null,
     );
   }
 
@@ -320,6 +330,39 @@ class _CareerQuizPageState extends State<CareerQuizPage> {
       ),
     );
   }
+
+  Widget _buildLoginPrompt(BuildContext context) {
+    final primary = Theme.of(context).primaryColor;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 50, color: primary),
+            const SizedBox(height: 12),
+            Text(
+              "Please login to take the Career Quiz",
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/login'),
+              icon: const Icon(Icons.login),
+              label: const Text("Login"),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/register'),
+              icon: const Icon(Icons.app_registration),
+              label: const Text("Register"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _TimelineRow extends StatelessWidget {
@@ -330,13 +373,11 @@ class _TimelineRow extends StatelessWidget {
     required this.lineColor,
     required this.dotColor,
   });
-
   final Widget child;
   final bool isFirst;
   final bool isLast;
   final Color lineColor;
   final Color dotColor;
-
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
@@ -387,13 +428,11 @@ class _CareerCard extends StatefulWidget {
     required this.onSurface,
     required this.primary,
   });
-
   final _MatchItem item;
   final VoidCallback onTap;
   final Color surface;
   final Color onSurface;
   final Color primary;
-
   @override
   State<_CareerCard> createState() => _CareerCardState();
 }
@@ -513,7 +552,6 @@ class _CareerCardState extends State<_CareerCard> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final item = widget.item;
-
     return Material(
       color: widget.surface,
       borderRadius: BorderRadius.circular(16),
@@ -638,7 +676,6 @@ class _CareerCardState extends State<_CareerCard> {
 class _AnimatedDonutPercent extends StatefulWidget {
   const _AnimatedDonutPercent({required this.percent});
   final int percent;
-
   @override
   State<_AnimatedDonutPercent> createState() => _AnimatedDonutPercentState();
 }
@@ -647,7 +684,6 @@ class _AnimatedDonutPercentState extends State<_AnimatedDonutPercent>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   late final Animation<double> _tween;
-
   @override
   void initState() {
     super.initState();
@@ -712,13 +748,11 @@ class _DonutPainter extends CustomPainter {
   final double greenPercent;
   final Color green;
   final Color red;
-
   @override
   void paint(Canvas canvas, Size size) {
     const stroke = 8.0;
     final center = size.center(Offset.zero);
     final radius = min(size.width, size.height) / 2 - stroke;
-
     final basePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke

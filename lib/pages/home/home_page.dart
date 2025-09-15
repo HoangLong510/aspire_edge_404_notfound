@@ -83,9 +83,7 @@ class HomePage extends StatelessWidget {
       'postgraduate': 'Undergraduates/Postgraduates',
       'professionals': 'Professionals',
     };
-
     final PageController _pageController = PageController();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       int currentPage = 0;
       Future.doWhile(() async {
@@ -100,7 +98,6 @@ class HomePage extends StatelessWidget {
         return true;
       });
     });
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,13 +114,11 @@ class HomePage extends StatelessWidget {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-
             final docs = snapshot.data!.docs;
             final counts = <String, int>{};
             for (final key in _tierOptions.keys) {
               counts[key] = docs.where((d) => d["Tier"] == key).length;
             }
-
             return SizedBox(
               height: 120,
               child: Row(
@@ -305,18 +300,15 @@ class HomePage extends StatelessWidget {
   Widget _buildBlog(BuildContext context) {
     final today = DateTime.now();
     final startOfDay = DateTime(today.year, today.month, today.day);
-
     final todayQuery = FirebaseFirestore.instance
         .collection("Blogs")
         .where("CreatedAt", isGreaterThanOrEqualTo: startOfDay)
         .orderBy("CreatedAt", descending: true)
         .limit(1);
-
     final fallbackQuery = FirebaseFirestore.instance
         .collection("Blogs")
         .orderBy("CreatedAt", descending: true)
         .limit(1);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -333,7 +325,6 @@ class HomePage extends StatelessWidget {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-
             if (snapshot.data!.docs.isEmpty) {
               return StreamBuilder<QuerySnapshot>(
                 stream: fallbackQuery.snapshots(),
@@ -348,7 +339,6 @@ class HomePage extends StatelessWidget {
                 },
               );
             }
-
             return _buildBlogCard(context, snapshot.data!.docs.first);
           },
         ),
@@ -361,7 +351,6 @@ class HomePage extends StatelessWidget {
     final data = doc.data() as Map<String, dynamic>;
     final title = data["Title"] ?? "Untitled";
     final desc = data["Description"] ?? "";
-
     return Card(
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -439,13 +428,11 @@ class HomePage extends StatelessWidget {
           _InterestChip(
             label: "Healthcare",
             icon: Iconsax.heart,
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                "/industry_intro",
-                arguments: {"industry": "Healthcare"},
-              );
-            },
+            onTap: () => Navigator.pushNamed(
+              context,
+              "/industry_intro",
+              arguments: {"industry": "Healthcare"},
+            ),
           ),
           _InterestChip(
             label: "Art",
@@ -472,8 +459,25 @@ class HomePage extends StatelessWidget {
 
   Widget _buildCTA(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return const SizedBox.shrink();
-
+    if (uid == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(32, 12, 32, 24),
+        child: ElevatedButton.icon(
+          onPressed: () => Navigator.pushNamed(context, "/login"),
+          icon: const Icon(Iconsax.login, size: 22),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(60),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          label: const Text(
+            "Login to Discover Your Path",
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection("Users")
@@ -481,17 +485,14 @@ class HomePage extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
-
         final data = snapshot.data!.data() as Map<String, dynamic>?;
         final hasCareerMatches =
             data?["CareerMatches"] != null &&
             (data?["CareerMatches"] as List).isNotEmpty;
-
         final buttonText = hasCareerMatches
             ? "View Your Career Path"
             : "Discover Your Path";
         final route = hasCareerMatches ? "/career_path" : "/career_quiz";
-
         return Padding(
           padding: const EdgeInsets.fromLTRB(32, 12, 32, 24),
           child: ElevatedButton.icon(
@@ -518,13 +519,11 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-
   const _StatCard({
     required this.icon,
     required this.label,
     required this.value,
   });
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -559,13 +558,11 @@ class _InterestChip extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
-
   const _InterestChip({
     required this.label,
     required this.icon,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
