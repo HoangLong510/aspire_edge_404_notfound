@@ -1198,6 +1198,10 @@ PODS:
     - Firebase/Firestore (= 12.2.0)
     - firebase_core
     - Flutter
+  - cloud_functions (6.0.1):
+    - Firebase/Functions (= 12.2.0)
+    - firebase_core
+    - Flutter
   - Firebase/Auth (12.2.0):
     - Firebase/CoreOnly
     - FirebaseAuth (~> 12.2.0)
@@ -1206,6 +1210,9 @@ PODS:
   - Firebase/Firestore (12.2.0):
     - Firebase/CoreOnly
     - FirebaseFirestore (~> 12.2.0)
+  - Firebase/Functions (12.2.0):
+    - Firebase/CoreOnly
+    - FirebaseFunctions (~> 12.2.0)
   - firebase_auth (6.0.2):
     - Firebase/Auth (= 12.2.0)
     - firebase_core
@@ -1252,6 +1259,15 @@ PODS:
     - gRPC-Core (~> 1.69.0)
     - leveldb-library (~> 1.22)
     - nanopb (~> 3.30910.0)
+  - FirebaseFunctions (12.2.0):
+    - FirebaseAppCheckInterop (~> 12.2.0)
+    - FirebaseAuthInterop (~> 12.2.0)
+    - FirebaseCore (~> 12.2.0)
+    - FirebaseCoreExtension (~> 12.2.0)
+    - FirebaseMessagingInterop (~> 12.2.0)
+    - FirebaseSharedSwift (~> 12.2.0)
+    - GTMSessionFetcher/Core (< 6.0, >= 3.4)
+  - FirebaseMessagingInterop (12.2.0)
   - FirebaseSharedSwift (12.2.0)
   - Flutter (1.0.0)
   - flutter_local_notifications (0.0.1):
@@ -1416,6 +1432,7 @@ PODS:
 
 DEPENDENCIES:
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
+  - cloud_functions (from `.symlinks/plugins/cloud_functions/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
@@ -1446,6 +1463,8 @@ SPEC REPOS:
     - FirebaseCoreInternal
     - FirebaseFirestore
     - FirebaseFirestoreInternal
+    - FirebaseFunctions
+    - FirebaseMessagingInterop
     - FirebaseSharedSwift
     - Google-Maps-iOS-Utils
     - GoogleMaps
@@ -1460,6 +1479,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   cloud_firestore:
     :path: ".symlinks/plugins/cloud_firestore/ios"
+  cloud_functions:
+    :path: ".symlinks/plugins/cloud_functions/ios"
   firebase_auth:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
@@ -1497,6 +1518,7 @@ SPEC CHECKSUMS:
   abseil: a05cc83bf02079535e17169a73c5be5ba47f714b
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
   cloud_firestore: 15f49a9d824f4173238f15c2616dfc20ff9a0d0d
+  cloud_functions: d9462da16e3b799d2a9d1dea4ae42fe7cd6e76e2
   Firebase: 26f6f8d460603af3df970ad505b16b15f5e2e9a1
   firebase_auth: 9c0ce237c3bdc34c85fec8b87575beda143adba0
   firebase_core: 3ff52146406557dddd01d570e807e203ec7e1302
@@ -1508,6 +1530,8 @@ SPEC CHECKSUMS:
   FirebaseCoreInternal: 56ea29f3dad2894f81b060f706f9d53509b6ed3b
   FirebaseFirestore: 2baa1360623e942007726627653d43a5bc618ba8
   FirebaseFirestoreInternal: 6506aef21ac270bf137c34cd7283723d930eddb0
+  FirebaseFunctions: fc68f7e566da9b2eb714f66bc9e633d3111da7fb
+  FirebaseMessagingInterop: 913e21aa8526740cd2ac17b30e89dd3e56ff112e
   FirebaseSharedSwift: 52d868d4c269fcb4e4e1310c548435a9c1f46e25
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_local_notifications: ad39620c743ea4c15127860f4b5641649a988100

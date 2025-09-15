@@ -1,4 +1,4 @@
-import 'package:aspire_edge_404_notfound/pages/notifications_center_page.dart';
+import 'package:aspire_edge_404_notfound/pages/home/notifications_center_page.dart';
 import 'package:aspire_edge_404_notfound/widgets/app_drawer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,7 +19,6 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  // SỬA: Đổi Future thành Stream để lắng nghe thay đổi dữ liệu
   Stream<DocumentSnapshot<Map<String, dynamic>>>? _userStream;
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
@@ -33,7 +32,6 @@ class _MainLayoutState extends State<MainLayout> {
   void _loadUserData() {
     final user = _auth.currentUser;
     if (user != null) {
-      // SỬA: Thay get() bằng snapshots() để lắng nghe liên tục
       _userStream = _firestore.collection('Users').doc(user.uid).snapshots();
     } else {
       _userStream = null;
@@ -44,13 +42,15 @@ class _MainLayoutState extends State<MainLayout> {
     try {
       await _auth.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error logging out: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
       }
     }
   }
@@ -86,7 +86,6 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    // SỬA: Đổi FutureBuilder thành StreamBuilder và sử dụng _userStream
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _userStream,
       builder: (context, snapshot) {
@@ -121,7 +120,12 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Scaffold _buildMainScaffold(String fullName, String email, String avatarUrl, String tier) {
+  Scaffold _buildMainScaffold(
+    String fullName,
+    String email,
+    String avatarUrl,
+    String tier,
+  ) {
     final color = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -143,7 +147,8 @@ class _MainLayoutState extends State<MainLayout> {
             avatarUrl: avatarUrl,
             tier: tier,
             onProfile: () => Navigator.of(context).pushNamed('/profile'),
-            onChangePassword: () => Navigator.of(context).pushNamed('/change-password'),
+            onChangePassword: () =>
+                Navigator.of(context).pushNamed('/change-password'),
             onLogout: _showLogoutConfirmationDialog,
           ),
         ],
@@ -160,10 +165,6 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 }
-
-/// =======================
-///   M3 Menu (MenuAnchor)
-/// =======================
 
 class _UserMenuAnchor extends StatefulWidget {
   const _UserMenuAnchor({
@@ -215,14 +216,15 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
             shape: MaterialStatePropertyAll(
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(vertical: 8)),
+            padding: const MaterialStatePropertyAll(
+              EdgeInsets.symmetric(vertical: 8),
+            ),
           ),
         ),
         child: MenuAnchor(
           controller: _menuController,
           alignmentOffset: const Offset(0, 8),
           menuChildren: [
-            // Header
             MenuItemButton(
               onPressed: () {
                 _menuController.close();
@@ -242,18 +244,22 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(widget.fullName,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: cs.onSurface,
-                              )),
+                          Text(
+                            widget.fullName,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: cs.onSurface,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text(widget.email,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: cs.onSurfaceVariant,
-                              )),
+                          Text(
+                            widget.email,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -263,8 +269,6 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
               ),
             ),
             const Divider(height: 8, thickness: 1),
-
-            // Change Password
             MenuItemButton(
               onPressed: () {
                 _menuController.close();
@@ -273,8 +277,6 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
               leadingIcon: Icon(Icons.lock_outline, color: cs.onSurface),
               child: const Text('Change Password'),
             ),
-
-            // 👉 My Stories (only if not admin)
             if (widget.tier.toLowerCase() != 'admin')
               MenuItemButton(
                 onPressed: () {
@@ -284,8 +286,6 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
                 leadingIcon: Icon(Icons.menu_book, color: cs.onSurface),
                 child: const Text('My Stories'),
               ),
-
-            // Logout
             MenuItemButton(
               onPressed: () {
                 _menuController.close();
@@ -328,10 +328,7 @@ class _UserMenuAnchorState extends State<_UserMenuAnchor> {
 }
 
 class _PillAvatarButton extends StatelessWidget {
-  const _PillAvatarButton({
-    required this.avatarUrl,
-    required this.fullName,
-  });
+  const _PillAvatarButton({required this.avatarUrl, required this.fullName});
 
   final String avatarUrl;
   final String fullName;

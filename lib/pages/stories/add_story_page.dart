@@ -24,7 +24,6 @@ class _AddStoryPageState extends State<AddStoryPage> {
   final cloudName = "daxpkqhmd";
   final uploadPreset = "404notfound";
 
-  // Pick banner
   Future<void> _pickBanner() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -33,10 +32,10 @@ class _AddStoryPageState extends State<AddStoryPage> {
     }
   }
 
-  // Upload ảnh lên Cloudinary
   Future<String?> _uploadToCloudinary(File file) async {
-    final url =
-        Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/image/upload");
+    final url = Uri.parse(
+      "https://api.cloudinary.com/v1_1/$cloudName/image/upload",
+    );
 
     final req = http.MultipartRequest("POST", url)
       ..fields["upload_preset"] = uploadPreset
@@ -85,7 +84,7 @@ class _AddStoryPageState extends State<AddStoryPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Story submitted, pending approval")),
+        const SnackBar(content: Text("Story submitted, pending approval")),
       );
 
       Navigator.pushNamedAndRemoveUntil(
@@ -94,9 +93,9 @@ class _AddStoryPageState extends State<AddStoryPage> {
         (route) => false,
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       setState(() => _isSubmitting = false);
     }
@@ -105,13 +104,12 @@ class _AddStoryPageState extends State<AddStoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("✍️ Share Your Story")),
+      appBar: AppBar(title: const Text("Share Your Story")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner
             GestureDetector(
               onTap: _pickBanner,
               child: _bannerImage != null
@@ -132,14 +130,16 @@ class _AddStoryPageState extends State<AddStoryPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Center(
-                        child: Icon(Icons.add_a_photo,
-                            size: 40, color: Colors.grey),
+                        child: Icon(
+                          Icons.add_a_photo,
+                          size: 40,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
             ),
             const SizedBox(height: 20),
 
-            // Title
             TextField(
               controller: _titleCtrl,
               decoration: const InputDecoration(
@@ -149,7 +149,6 @@ class _AddStoryPageState extends State<AddStoryPage> {
             ),
             const SizedBox(height: 12),
 
-            // Description
             TextField(
               controller: _descCtrl,
               decoration: const InputDecoration(
@@ -159,7 +158,6 @@ class _AddStoryPageState extends State<AddStoryPage> {
             ),
             const SizedBox(height: 12),
 
-            // Content
             TextField(
               controller: _contentCtrl,
               maxLines: 6,

@@ -299,7 +299,6 @@ class _CommentsSectionState extends State<_CommentsSection> {
       "createdAt": FieldValue.serverTimestamp(),
     });
 
-    // tăng số comment
     await widget.storyRef.update({
       "commentCount": FieldValue.increment(1),
     });
