@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 class InterviewQuestionDetailPage extends StatelessWidget {
   const InterviewQuestionDetailPage({super.key});
 
-  // Mock data: multiple topics
   final List<Map<String, dynamic>> topics = const [
     {
       "topic": "Self-Introduction",
@@ -15,7 +14,7 @@ class InterviewQuestionDetailPage extends StatelessWidget {
       "examples": [
         "I recently graduated in Computer Science, completed an internship in ReactJS, and I am passionate about web development.",
         "I have two years of experience in mobile app development using Flutter and enjoy working in innovative teams.",
-        "I worked as a freelance UI/UX designer, gaining experience in client communication and project management."
+        "I worked as a freelance UI/UX designer, gaining experience in client communication and project management.",
       ],
     },
     {
@@ -35,7 +34,7 @@ class InterviewQuestionDetailPage extends StatelessWidget {
           "Choose a real weakness, but explain how you are actively improving it. Avoid clichés like 'perfectionist'.",
       "examples": [
         "I used to struggle with public speaking, but I joined a Toastmasters club to build my confidence.",
-        "I sometimes take too many responsibilities, but I now prioritize tasks and delegate when needed."
+        "I sometimes take too many responsibilities, but I now prioritize tasks and delegate when needed.",
       ],
     },
     {
@@ -45,9 +44,9 @@ class InterviewQuestionDetailPage extends StatelessWidget {
           "Show ambition but align with the company’s vision. Highlight learning and growth rather than a specific job title.",
       "examples": [
         "I hope to become a senior software engineer leading a small team while continuing to expand my technical expertise.",
-        "I see myself growing into a leadership role where I can mentor junior developers."
+        "I see myself growing into a leadership role where I can mentor junior developers.",
       ],
-    }
+    },
   ];
 
   @override
@@ -95,7 +94,7 @@ class InterviewQuestionDetailPage extends StatelessWidget {
                       onPressed: () =>
                           Navigator.pushNamed(context, "/career_quiz"),
                       icon: const Icon(Icons.play_arrow),
-                      label: const Text("Practice Your Answers 🚀"),
+                      label: const Text("Practice Your Answers"),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
@@ -120,17 +119,13 @@ class InterviewQuestionDetailPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Topic title
         Text(
-          "📌 ${topic['topic']}",
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.bold),
+          topic['topic'],
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-
-        // Question box
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -149,20 +144,19 @@ class InterviewQuestionDetailPage extends StatelessWidget {
                 child: Text(
                   topic['question'],
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
         ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
         const SizedBox(height: 16),
-
-        // Suggestion
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.lightbulb_outline,
-                color: Colors.indigo, size: 26),
+            const Icon(Icons.lightbulb_outline, color: Colors.indigo, size: 26),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -173,10 +167,7 @@ class InterviewQuestionDetailPage extends StatelessWidget {
           ],
         ),
         const Divider(height: 24),
-
-        // Example answers
-        Text("Example Answers",
-            style: Theme.of(context).textTheme.titleMedium),
+        Text("Example Answers", style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         ...List.generate(topic['examples'].length, (index) {
           return Card(
@@ -194,22 +185,23 @@ class InterviewQuestionDetailPage extends StatelessWidget {
                   CircleAvatar(
                     radius: 16,
                     backgroundColor: Colors.blue.shade50,
-                    child: const Icon(Icons.chat_bubble_outline,
-                        color: Colors.blue, size: 16),
+                    child: const Icon(
+                      Icons.chat_bubble_outline,
+                      color: Colors.blue,
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       topic['examples'][index],
-                      style:
-                          const TextStyle(fontSize: 14, height: 1.4),
+                      style: const TextStyle(fontSize: 14, height: 1.4),
                     ),
                   ),
                 ],
               ),
             ),
-          ).animate().fadeIn(
-              duration: 500.ms, delay: (300 + index * 150).ms);
+          ).animate().fadeIn(duration: 500.ms, delay: (300 + index * 150).ms);
         }),
       ],
     );

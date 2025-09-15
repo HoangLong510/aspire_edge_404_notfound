@@ -8,9 +8,6 @@ class SuggestionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      label: Text(label),
-      onPressed: onTap,
-    );
+    return ActionChip(label: Text(label), onPressed: onTap);
   }
 }

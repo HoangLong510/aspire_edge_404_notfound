@@ -11,14 +11,14 @@ class GptService {
       Uri.parse("$kOpenAIBaseUrl/chat/completions"),
       headers: {
         "Authorization": "Bearer $apiKey",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: jsonEncode({
         "model": kOpenAIModel,
         "messages": [
           {"role": "system", "content": systemPrompt},
-          {"role": "user", "content": text}
-        ]
+          {"role": "user", "content": text},
+        ],
       }),
     );
 

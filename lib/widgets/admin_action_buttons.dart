@@ -11,14 +11,28 @@ class AdminActionButtons extends StatelessWidget {
     required this.status,
   });
 
-  void _approve() {
-    FirebaseFirestore.instance.collection("Stories").doc(docId).update({
-      "status": "approved",
-    });
+  Future<void> _approve(BuildContext context) async {
+    try {
+      await FirebaseFirestore.instance.collection("Stories").doc(docId).update({
+        "status": "approved",
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Story approved")));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to approve: $e")));
+      }
+    }
   }
 
-  void _reject(BuildContext context) async {
+  Future<void> _reject(BuildContext context) async {
     final noteCtrl = TextEditingController();
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -26,14 +40,14 @@ class AdminActionButtons extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Lý do từ chối:"),
+            const Text("Reason for rejection:"),
             const SizedBox(height: 8),
             TextField(
               controller: noteCtrl,
               maxLines: 3,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                hintText: "Nhập ghi chú...",
+                hintText: "Enter rejection note...",
               ),
             ),
           ],
@@ -45,6 +59,7 @@ class AdminActionButtons extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text("Reject"),
           ),
         ],
@@ -52,59 +67,84 @@ class AdminActionButtons extends StatelessWidget {
     );
 
     if (confirm == true) {
-      FirebaseFirestore.instance.collection("Stories").doc(docId).update({
-        "status": "rejected",
-        "rejectNote": noteCtrl.text.trim(),
-      });
+      final note = noteCtrl.text.trim();
+      if (note.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please provide a rejection note.")),
+          );
+        }
+        return;
+      }
+
+      try {
+        await FirebaseFirestore.instance
+            .collection("Stories")
+            .doc(docId)
+            .update({"status": "rejected", "rejectNote": note});
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Story rejected")));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Failed to reject: $e")));
+        }
+      }
+    }
+  }
+
+  List<Widget> _buildButtons(BuildContext context) {
+    switch (status) {
+      case "pending":
+        return [
+          TextButton.icon(
+            onPressed: () => _approve(context),
+            icon: const Icon(Icons.check_circle, color: Colors.green),
+            label: const Text("Approve"),
+            style: TextButton.styleFrom(foregroundColor: Colors.green),
+          ),
+          TextButton.icon(
+            onPressed: () => _reject(context),
+            icon: const Icon(Icons.cancel, color: Colors.red),
+            label: const Text("Reject"),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ];
+      case "approved":
+        return [
+          TextButton.icon(
+            onPressed: () => _reject(context),
+            icon: const Icon(Icons.cancel, color: Colors.red),
+            label: const Text("Reject"),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ];
+      default: // rejected or anything else
+        return [
+          TextButton.icon(
+            onPressed: () => _approve(context),
+            icon: const Icon(Icons.check_circle, color: Colors.green),
+            label: const Text("Approve"),
+            style: TextButton.styleFrom(foregroundColor: Colors.green),
+          ),
+        ];
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> buttons = [];
-
-    if (status == "pending") {
-      buttons = [
-        TextButton.icon(
-          onPressed: _approve,
-          icon: const Icon(Icons.check_circle, color: Colors.green),
-          label: const Text("Approve"),
-        ),
-        TextButton.icon(
-          onPressed: () => _reject(context),
-          icon: const Icon(Icons.cancel, color: Colors.red),
-          label: const Text("Reject"),
-        ),
-      ];
-    } else if (status == "approved") {
-      buttons = [
-        TextButton.icon(
-          onPressed: () => _reject(context),
-          icon: const Icon(Icons.cancel, color: Colors.red),
-          label: const Text("Reject"),
-        ),
-      ];
-    } else {
-      buttons = [
-        TextButton.icon(
-          onPressed: _approve,
-          icon: const Icon(Icons.check_circle, color: Colors.green),
-          label: const Text("Approve"),
-        ),
-      ];
-    }
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const Text(
           "Action:",
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.black54,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54),
         ),
-        Row(children: buttons),
+        Row(children: _buildButtons(context)),
       ],
     );
   }

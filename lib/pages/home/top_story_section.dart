@@ -27,18 +27,17 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
 
   Future<void> _checkOrGenerateTopStories() async {
     final todayId = DateTime.now().toIso8601String().split("T").first;
-    final todayDoc =
-        FirebaseFirestore.instance.collection("TopStoriesDaily").doc(todayId);
+    final todayDoc = FirebaseFirestore.instance
+        .collection("TopStoriesDaily")
+        .doc(todayId);
 
     final todaySnap = await todayDoc.get();
     if (todaySnap.exists) {
       final data = todaySnap.data() as Map<String, dynamic>;
       final raw = data["storyIds"];
-
       final ids = raw is List
           ? raw.cast<String>()
           : (raw as Map).values.cast<String>().toList();
-
       await _loadStoriesByIds(ids);
     } else {
       await _generateTopStories(todayDoc);
@@ -79,10 +78,8 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
       }
 
       final ranked = await _callOpenAIForTopStories(stories);
-      final topIds =
-          ranked.take(5).map((e) => e["storyId"] as String).toList();
+      final topIds = ranked.take(5).map((e) => e["storyId"] as String).toList();
 
-      // ✅ always store as List<String>
       await todayDoc.set({
         "createdAt": FieldValue.serverTimestamp(),
         "storyIds": List<String>.from(topIds),
@@ -99,8 +96,10 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
     try {
       List<Map<String, dynamic>> tmp = [];
       for (final id in ids) {
-        final doc =
-            await FirebaseFirestore.instance.collection("Stories").doc(id).get();
+        final doc = await FirebaseFirestore.instance
+            .collection("Stories")
+            .doc(id)
+            .get();
         if (!doc.exists) continue;
         final data = doc.data()!;
         final likesSnap = await doc.reference.collection("likes").get();
@@ -131,7 +130,8 @@ class _TopStoriesSectionState extends State<TopStoriesSection> {
   }
 
   Future<List<Map<String, dynamic>>> _callOpenAIForTopStories(
-      List<Map<String, dynamic>> stories) async {
+    List<Map<String, dynamic>> stories,
+  ) async {
     if (kOpenAIApiKey.trim().isEmpty) {
       throw Exception('Missing OPENAI_API_KEY');
     }
@@ -157,7 +157,10 @@ Return ONLY JSON in this schema:
       'response_format': {'type': 'json_object'},
       'messages': [
         {'role': 'system', 'content': systemPrompt},
-        {'role': 'user', 'content': jsonEncode({"stories": stories})}
+        {
+          'role': 'user',
+          'content': jsonEncode({"stories": stories}),
+        },
       ],
     });
 
@@ -168,12 +171,14 @@ Return ONLY JSON in this schema:
 
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
     final choices = (decoded['choices'] as List?) ?? [];
-    final content =
-        choices.isNotEmpty ? (choices.first['message']?['content'] ?? '') : '';
+    final content = choices.isNotEmpty
+        ? (choices.first['message']?['content'] ?? '')
+        : '';
 
     final parsed = jsonDecode(content);
-    final rawMatches =
-        (parsed['matches'] is List) ? parsed['matches'] as List : [];
+    final rawMatches = (parsed['matches'] is List)
+        ? parsed['matches'] as List
+        : [];
 
     rawMatches.sort((a, b) => (b['score'] ?? 0).compareTo(a['score'] ?? 0));
 
@@ -220,16 +225,19 @@ Return ONLY JSON in this schema:
                 },
                 child: Container(
                   width: 260,
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: const [
                       BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 6,
-                          offset: Offset(0, 3)),
+                        color: Colors.black12,
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
                     ],
                   ),
                   child: Column(
@@ -238,7 +246,8 @@ Return ONLY JSON in this schema:
                       if ((s["bannerUrl"] as String).isNotEmpty)
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(16)),
+                            top: Radius.circular(16),
+                          ),
                           child: Image.network(
                             s["bannerUrl"],
                             height: 100,
@@ -258,8 +267,8 @@ Return ONLY JSON in this schema:
                                     radius: 18,
                                     backgroundImage:
                                         (s["avatar"] as String).isNotEmpty
-                                            ? NetworkImage(s["avatar"])
-                                            : null,
+                                        ? NetworkImage(s["avatar"])
+                                        : null,
                                     child: (s["avatar"] as String).isEmpty
                                         ? const Icon(Icons.person)
                                         : null,
@@ -269,8 +278,9 @@ Return ONLY JSON in this schema:
                                     child: Text(
                                       s["name"],
                                       style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -282,7 +292,9 @@ Return ONLY JSON in this schema:
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    fontSize: 15, fontWeight: FontWeight.bold),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Flexible(
@@ -291,7 +303,9 @@ Return ONLY JSON in this schema:
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                      fontSize: 13, color: Colors.grey[700]),
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
                                 ),
                               ),
                             ],
@@ -300,16 +314,24 @@ Return ONLY JSON in this schema:
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         child: Row(
                           children: [
-                            const Icon(Icons.favorite,
-                                size: 16, color: Colors.red),
+                            const Icon(
+                              Icons.favorite,
+                              size: 16,
+                              color: Colors.red,
+                            ),
                             const SizedBox(width: 4),
                             Text("${s["likes"]}"),
                             const SizedBox(width: 16),
-                            const Icon(Icons.comment,
-                                size: 16, color: Colors.grey),
+                            const Icon(
+                              Icons.comment,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 4),
                             Text("${s["commentCount"]}"),
                           ],

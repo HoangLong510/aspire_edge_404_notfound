@@ -7,12 +7,10 @@ class StoryCard extends StatelessWidget {
   final String subTitle;
   final String? bannerUrl;
 
-  // 👇 Thông tin người tạo
   final String? authorName;
   final String? authorEmail;
   final String? authorAvatar;
 
-  // 👇 Trạng thái chỉ dành cho admin
   final String? status;
   final Widget? footer;
   final bool showStatus;
@@ -33,8 +31,9 @@ class StoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final storyRef =
-        FirebaseFirestore.instance.collection("Stories").doc(storyId);
+    final storyRef = FirebaseFirestore.instance
+        .collection("Stories")
+        .doc(storyId);
 
     return StreamBuilder<DocumentSnapshot>(
       stream: storyRef.snapshots(),
@@ -57,11 +56,7 @@ class StoryCard extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-              Navigator.pushNamed(
-                context,
-                "/story_detail",
-                arguments: storyId,
-              );
+              Navigator.pushNamed(context, "/story_detail", arguments: storyId);
             },
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,8 +64,9 @@ class StoryCard extends StatelessWidget {
                 // Banner
                 if (bannerUrl != null && bannerUrl!.isNotEmpty)
                   ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                     child: Image.network(
                       bannerUrl!,
                       height: 160,
@@ -79,8 +75,11 @@ class StoryCard extends StatelessWidget {
                       errorBuilder: (context, error, stackTrace) => Container(
                         height: 160,
                         color: Colors.grey[300],
-                        child: const Icon(Icons.broken_image,
-                            size: 48, color: Colors.grey),
+                        child: const Icon(
+                          Icons.broken_image,
+                          size: 48,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   ),
@@ -119,11 +118,13 @@ class StoryCard extends StatelessWidget {
                           children: [
                             CircleAvatar(
                               radius: 20,
-                              backgroundImage: (authorAvatar != null &&
+                              backgroundImage:
+                                  (authorAvatar != null &&
                                       authorAvatar!.isNotEmpty)
                                   ? NetworkImage(authorAvatar!)
                                   : null,
-                              child: (authorAvatar == null ||
+                              child:
+                                  (authorAvatar == null ||
                                       authorAvatar!.isEmpty)
                                   ? const Icon(Icons.person, size: 20)
                                   : null,
@@ -153,19 +154,24 @@ class StoryCard extends StatelessWidget {
                               ),
                             ),
 
-                            // ❤️ Likes + 💬 Comments (realtime)
                             Row(
                               children: [
-                                const Icon(Icons.favorite,
-                                    size: 16, color: Colors.redAccent),
+                                const Icon(
+                                  Icons.favorite,
+                                  size: 16,
+                                  color: Colors.redAccent,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   likeCount.toString(),
                                   style: const TextStyle(fontSize: 13),
                                 ),
                                 const SizedBox(width: 12),
-                                const Icon(Icons.comment,
-                                    size: 16, color: Colors.blueGrey),
+                                const Icon(
+                                  Icons.comment,
+                                  size: 16,
+                                  color: Colors.blueGrey,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   commentCount.toString(),
@@ -177,43 +183,41 @@ class StoryCard extends StatelessWidget {
                         ),
                       ],
 
-                      // 👇 Chỉ admin mới thấy trạng thái
                       if (showStatus && status != null) ...[
                         const SizedBox(height: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              vertical: 6, horizontal: 12),
+                            vertical: 6,
+                            horizontal: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: status == "approved"
                                 ? Colors.green.withOpacity(0.15)
                                 : status == "rejected"
-                                    ? Colors.red.withOpacity(0.15)
-                                    : Colors.orange.withOpacity(0.15),
+                                ? Colors.red.withOpacity(0.15)
+                                : Colors.orange.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             status == "approved"
                                 ? "Approved"
                                 : status == "rejected"
-                                    ? "Rejected"
-                                    : "Pending Review",
+                                ? "Rejected"
+                                : "Pending Review",
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: status == "approved"
                                   ? Colors.green
                                   : status == "rejected"
-                                      ? Colors.red
-                                      : Colors.orange,
+                                  ? Colors.red
+                                  : Colors.orange,
                             ),
                           ),
                         ),
                       ],
 
-                      if (footer != null) ...[
-                        const Divider(),
-                        footer!,
-                      ],
+                      if (footer != null) ...[const Divider(), footer!],
                     ],
                   ),
                 ),

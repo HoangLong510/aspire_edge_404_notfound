@@ -87,21 +87,6 @@ class AppDrawer extends StatelessWidget {
 
   static final List<_DrawerItem> _adminItems = [
     const _DrawerItem(
-      title: 'Admin Panel',
-      icon: Icons.admin_panel_settings_rounded,
-      route: '/admin_panel',
-    ),
-    const _DrawerItem(
-      title: 'Seed Achievements',
-      icon: Icons.storage_rounded,
-      route: '/seed_achievements',
-    ),
-    const _DrawerItem(
-      title: 'Admin Contacts',
-      icon: Icons.mail_lock_rounded,
-      route: '/admin_contacts',
-    ),
-    const _DrawerItem(
       title: 'SList Stories',
       icon: Icons.library_books_rounded,
       route: '/stories_admin',

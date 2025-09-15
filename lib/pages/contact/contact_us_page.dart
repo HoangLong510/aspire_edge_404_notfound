@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'smtp_email_service.dart'; // 👈 import service gửi mail
+import '../../utils/smtp_email_service.dart';
 
 class ContactUsPage extends StatefulWidget {
   const ContactUsPage({super.key});
@@ -20,9 +20,9 @@ class _ContactUsPageState extends State<ContactUsPage> {
     setState(() => _isSending = true);
 
     final success = await SmtpEmailService.sendContactEmail(
-      name: _nameCtrl.text,
-      email: _emailCtrl.text,
-      message: _messageCtrl.text,
+      name: _nameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
+      message: _messageCtrl.text.trim(),
     );
 
     setState(() => _isSending = false);
@@ -30,7 +30,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success ? "✅ Message sent successfully!" : "❌ Failed to send message.",
+          success ? "Message sent successfully." : "Failed to send message.",
         ),
         backgroundColor: success ? Colors.green : Colors.red,
       ),
@@ -60,26 +60,45 @@ class _ContactUsPageState extends State<ContactUsPage> {
           const SizedBox(height: 28),
           _buildInputField("Full Name", Iconsax.user, controller: _nameCtrl),
           const SizedBox(height: 20),
-          _buildInputField("Email Address", Iconsax.sms, controller: _emailCtrl),
+          _buildInputField(
+            "Email Address",
+            Iconsax.sms,
+            controller: _emailCtrl,
+          ),
           const SizedBox(height: 20),
-          _buildInputField("Message", Iconsax.message, controller: _messageCtrl, maxLines: 4),
+          _buildInputField(
+            "Message",
+            Iconsax.message,
+            controller: _messageCtrl,
+            maxLines: 4,
+          ),
           const SizedBox(height: 28),
           ElevatedButton.icon(
             onPressed: _isSending ? null : _handleSubmit,
             icon: _isSending
                 ? const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Iconsax.send_2, color: Colors.white),
             label: Text(
               _isSending ? "Sending..." : "Submit",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.white,
+              ),
             ),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               backgroundColor: Colors.blueAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
@@ -87,8 +106,12 @@ class _ContactUsPageState extends State<ContactUsPage> {
     );
   }
 
-  Widget _buildInputField(String label, IconData icon,
-      {int maxLines = 1, TextEditingController? controller}) {
+  Widget _buildInputField(
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+    TextEditingController? controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

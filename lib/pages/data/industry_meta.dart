@@ -5,7 +5,7 @@ final Map<String, Map<String, Object>> industryMeta = {
     "title": "Information Technology",
     "color": Colors.blue,
     "banner":
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1600&auto=format&fit=crop",
     "stats": [
       "+18% workforce demand this year",
       "Average salary: \$65k–\$120k",
@@ -23,17 +23,18 @@ final Map<String, Map<String, Object>> industryMeta = {
       "Backend Developer",
       "Mobile Developer",
       "Data Engineer",
-      "DevOps Engineer"
+      "DevOps Engineer",
     ],
     "lottieStats": "assets/lottie/tech.json",
     "lottieSkills": "assets/lottie/skillstech.json",
-    "lottieRoles": "https://assets1.lottiefiles.com/packages/lf20_oojuetow.json",
+    "lottieRoles":
+        "https://assets1.lottiefiles.com/packages/lf20_oojuetow.json",
   },
   "healthcare": {
     "title": "Healthcare",
     "color": Colors.teal,
     "banner":
-    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1600&auto=format&fit=crop",
     "stats": [
       "+12% workforce demand",
       "Average salary: \$45k–\$90k",
@@ -41,7 +42,8 @@ final Map<String, Map<String, Object>> industryMeta = {
     ],
     "skills": ["Patient Care", "Clinical Knowledge", "EMR", "Communication"],
     "roles": ["Nurse", "Resident Doctor", "Pharmacist"],
-    "lottieStats": "https://assets6.lottiefiles.com/packages/lf20_w51pcehl.json",
+    "lottieStats":
+        "https://assets6.lottiefiles.com/packages/lf20_w51pcehl.json",
     "lottieSkills": "assets/lottie/skillsdoctor.json",
     "lottieRoles": "assets/lottie/doctorrole.json",
   },
@@ -49,11 +51,8 @@ final Map<String, Map<String, Object>> industryMeta = {
     "title": "Art",
     "color": Colors.purple,
     "banner":
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
-    "stats": [
-      "+8% growth in digital arts",
-      "Freelancers account for 60%",
-    ],
+        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+    "stats": ["+8% growth in digital arts", "Freelancers account for 60%"],
     "skills": ["Illustration", "Branding", "Motion Graphics", "UI/UX Design"],
     "roles": ["Graphic Designer", "Illustrator", "Animator"],
     "lottieStats": "assets/lottie/art.json",
@@ -64,7 +63,7 @@ final Map<String, Map<String, Object>> industryMeta = {
     "title": "Science",
     "color": Colors.indigo,
     "banner":
-    "https://bvtb.org.vn/wp-content/uploads/2024/03/hinh-anh-de-tai-nghien-cuu-khoa-hoc-0-1-350x220.jpg",
+        "https://bvtb.org.vn/wp-content/uploads/2024/03/hinh-anh-de-tai-nghien-cuu-khoa-hoc-0-1-350x220.jpg",
     "stats": [
       "+10% R&D growth",
       "Strong interdisciplinary demand",
@@ -74,6 +73,7 @@ final Map<String, Map<String, Object>> industryMeta = {
     "roles": ["Researcher", "Bioinformatician", "Data Scientist"],
     "lottieStats": "assets/lottie/science.json",
     "lottieSkills": "assets/lottie/skillscience.json",
-    "lottieRoles": "https://assets1.lottiefiles.com/packages/lf20_yr6zz3wv.json",
+    "lottieRoles":
+        "https://assets1.lottiefiles.com/packages/lf20_yr6zz3wv.json",
   },
 };

@@ -5,99 +5,85 @@ class ExpertPortfolioPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const expertName = "Hoàng Gia Huy";
+    const expertName = "Hoang Gia Huy";
     const avatarUrl =
         "https://res.cloudinary.com/daxpkqhmd/image/upload/v1757492191/z6992939545936_81efd111ee172b5b750549f93fcefdc4_pckfbv.jpg";
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Portfolio Chuyên Gia"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("Expert Portfolio"), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Avatar
-            CircleAvatar(
-              radius: 60,
-              backgroundImage: NetworkImage(avatarUrl),
-            ),
+            CircleAvatar(radius: 60, backgroundImage: NetworkImage(avatarUrl)),
             const SizedBox(height: 16),
-
-            // Tên chuyên gia
             Text(
               expertName,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-
-            // Tiêu đề / Vai trò
             const Text(
-              "Chuyên gia Nhân sự & Phát triển sự nghiệp",
+              "HR & Career Development Expert",
               style: TextStyle(fontSize: 16, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
             const Divider(height: 32),
-
-            // Giới thiệu
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Giới thiệu",
+                "Introduction",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 8),
             const Text(
-              "Hoàng Gia Huy có hơn 10 năm kinh nghiệm trong lĩnh vực nhân sự, "
-              "đặc biệt là tư vấn định hướng nghề nghiệp, đào tạo kỹ năng phỏng vấn "
-              "và hỗ trợ xây dựng lộ trình phát triển sự nghiệp cho hàng ngàn ứng viên.",
+              "Hoang Gia Huy has over 10 years of experience in human resources, "
+              "specializing in career counseling, interview training, and "
+              "helping thousands of candidates build professional career paths.",
               style: TextStyle(fontSize: 15, height: 1.5),
             ),
             const SizedBox(height: 24),
-
-            // Thành tựu
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Thành tựu nổi bật",
+                "Key Achievements",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 8),
-            _AchievementItem(
+            const _AchievementItem(
               icon: Icons.workspace_premium,
-              text: "Hơn 5000+ ứng viên được hỗ trợ thành công",
+              text: "Supported over 5000+ candidates successfully",
             ),
-            _AchievementItem(
+            const _AchievementItem(
               icon: Icons.school,
-              text: "Diễn giả tại nhiều hội thảo hướng nghiệp trong và ngoài nước",
+              text: "Speaker at various career workshops worldwide",
             ),
-            _AchievementItem(
+            const _AchievementItem(
               icon: Icons.book,
-              text: "Tác giả cuốn sách 'Nghệ thuật chinh phục phỏng vấn'",
+              text: "Author of the book 'The Art of Mastering Interviews'",
             ),
             const SizedBox(height: 24),
-
-            // CTA
             ElevatedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text("Liên hệ chuyên gia: huy.hr@example.com"),
-                ));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Contact expert: huy.hr@example.com"),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               icon: const Icon(Icons.mail),
-              label: const Text("Liên hệ chuyên gia"),
+              label: const Text("Contact Expert"),
             ),
           ],
         ),
@@ -125,4 +111,3 @@ class _AchievementItem extends StatelessWidget {
     );
   }
 }
- 

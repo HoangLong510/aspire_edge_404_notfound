@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CurriculumVitaeTipDetailPage extends StatefulWidget {
   const CurriculumVitaeTipDetailPage({super.key});
@@ -15,36 +16,38 @@ class _CurriculumVitaeTipDetailPageState
   late final WebViewController _controller;
   bool _isVideoLoading = true;
 
+  String _searchQuery = "";
+
   final List<Map<String, String>> _tips = const [
     {
       "title": "Use a clean layout and professional fonts",
       "desc":
-          "Avoid clutter. Choose fonts like Arial, Calibri, or Times New Roman for readability."
+          "Avoid clutter. Choose fonts like Arial, Calibri, or Times New Roman for readability.",
     },
     {
       "title": "Highlight important skills at the top",
       "desc":
-          "Place your most relevant technical and soft skills where recruiters see them first."
+          "Place your most relevant technical and soft skills where recruiters see them first.",
     },
     {
       "title": "Focus on achievements, not just job duties",
       "desc":
-          "Instead of writing 'Responsible for managing team', write 'Led a team of 5 to deliver project 2 weeks ahead of schedule'."
+          "Instead of writing 'Responsible for managing team', write 'Led a team of 5 to deliver project 2 weeks ahead of schedule'.",
     },
     {
       "title": "Use numbers to prove your accomplishments",
       "desc":
-          "Recruiters love data: 'Increased sales by 25%' is stronger than 'Improved sales'."
+          "Recruiters love data: 'Increased sales by 25%' is stronger than 'Improved sales'.",
     },
     {
       "title": "Tailor your Curriculum Vitae to each job you apply for",
       "desc":
-          "Analyze the job description and adapt your Curriculum Vitae to highlight the most relevant skills."
+          "Analyze the job description and adapt your Curriculum Vitae to highlight the most relevant skills.",
     },
     {
       "title": "Keep it short, ideally 1–2 pages",
       "desc":
-          "HR typically spends less than 10 seconds scanning a Curriculum Vitae. Conciseness is key."
+          "HR typically spends less than 10 seconds scanning a Curriculum Vitae. Conciseness is key.",
     },
   ];
 
@@ -59,19 +62,14 @@ class _CurriculumVitaeTipDetailPageState
   final List<Map<String, String>> _resources = const [
     {
       "title": "Canva Curriculum Vitae Templates",
-      "link": "https://www.canva.com/resumes/templates/"
+      "link": "https://www.canva.com/resumes/templates/",
     },
-    {
-      "title": "Zety Resume Builder",
-      "link": "https://zety.com/resume-builder"
-    },
+    {"title": "Zety Resume Builder", "link": "https://zety.com/resume-builder"},
     {
       "title": "Book: What Color is Your Parachute?",
-      "link": "https://www.parachutebook.com/"
+      "link": "https://www.parachutebook.com/",
     },
   ];
-
-  String _searchQuery = "";
 
   @override
   void initState() {
@@ -84,17 +82,19 @@ class _CurriculumVitaeTipDetailPageState
           onPageFinished: (_) => setState(() => _isVideoLoading = false),
         ),
       )
-      ..loadRequest(
-        Uri.parse("https://www.youtube.com/embed/rM4lDSxwW_g"),
-      );
+      ..loadRequest(Uri.parse("https://www.youtube.com/embed/rM4lDSxwW_g"));
   }
 
   @override
   Widget build(BuildContext context) {
     final filteredTips = _tips
-        .where((tip) =>
-            tip["title"]!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            tip["desc"]!.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .where(
+          (tip) =>
+              tip["title"]!.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ) ||
+              tip["desc"]!.toLowerCase().contains(_searchQuery.toLowerCase()),
+        )
         .toList();
 
     return Scaffold(
@@ -111,9 +111,9 @@ class _CurriculumVitaeTipDetailPageState
             Text(
               "Welcome to the Curriculum Vitae Masterclass",
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -152,14 +152,12 @@ class _CurriculumVitaeTipDetailPageState
                   borderSide: BorderSide.none,
                 ),
               ),
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-              },
+              onChanged: (value) => setState(() => _searchQuery = value),
             ),
             const SizedBox(height: 20),
-            const Text(
-              "List of Curriculum Vitae Tips",
-              style: TextStyle(
+            Text(
+              "Tips (${filteredTips.length})",
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
                 color: Colors.black87,
@@ -185,7 +183,7 @@ class _CurriculumVitaeTipDetailPageState
                         tip["desc"]!,
                         style: const TextStyle(color: Colors.black87),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -206,6 +204,7 @@ class _CurriculumVitaeTipDetailPageState
                 elevation: 1,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
+                  leading: const Icon(Icons.close, color: Colors.redAccent),
                   title: Text(m),
                 ),
               ),
@@ -225,15 +224,21 @@ class _CurriculumVitaeTipDetailPageState
                 elevation: 1,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
+                  leading: const Icon(Iconsax.link, color: Colors.blueAccent),
                   title: Text(r["title"]!),
                   subtitle: Text(r["link"]!),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Open: ${r["link"]}"),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                  onTap: () async {
+                    final uri = Uri.parse(r["link"]!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Cannot open ${r["link"]}")),
+                      );
+                    }
                   },
                 ),
               ),

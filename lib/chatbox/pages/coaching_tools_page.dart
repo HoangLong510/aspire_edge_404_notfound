@@ -8,7 +8,6 @@ import '../models/team_member.dart';
 import '../services/chat_router.dart';
 import '../services/career_service.dart';
 import '../services/gpt_service.dart';
-import '../services/team_service.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/suggestion_chip.dart';
 import '../../constants/env_config.dart';
@@ -73,11 +72,13 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
   void _askQuizQuestion() {
     final q = _quizQuestions[_currentQuizIndex];
     setState(() {
-      _messages.add(ChatMessage(
-        role: "ai",
-        content: q["text"],
-        suggestions: (q["options"] as List).cast<String>(),
-      ));
+      _messages.add(
+        ChatMessage(
+          role: "ai",
+          content: q["text"],
+          suggestions: (q["options"] as List).cast<String>(),
+        ),
+      );
     });
   }
 
@@ -90,24 +91,30 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
     } else {
       _mode = ChatMode.normal;
       setState(() {
-        _messages.add(ChatMessage(
-          role: "ai",
-          content: "✅ Quiz completed! I will now suggest careers that may fit you.",
-        ));
+        _messages.add(
+          ChatMessage(
+            role: "ai",
+            content:
+                "Quiz completed! I will now suggest careers that may fit you.",
+          ),
+        );
       });
     }
   }
 
   Future<void> _handleCareerRequest(String title) async {
-    final details = await _careerService
-        .getCareerDetails(title.toLowerCase().replaceAll(" ", "_"));
+    final details = await _careerService.getCareerDetails(
+      title.toLowerCase().replaceAll(" ", "_"),
+    );
 
     if (details.isEmpty) {
       setState(() {
-        _messages.add(ChatMessage(
-          role: "ai",
-          content: "Sorry, no data available for $title yet.",
-        ));
+        _messages.add(
+          ChatMessage(
+            role: "ai",
+            content: "Sorry, no data available for $title yet.",
+          ),
+        );
       });
       return;
     }
@@ -116,32 +123,40 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
     final paths = details["paths"];
 
     setState(() {
-      _messages.add(ChatMessage(
-        role: "ai",
-        content: "${career.title} (${career.industry})\n"
-            "Skills: ${career.skills.join(", ")}\n"
-            "Salary: ${career.salaryRange}\n"
-            "Description: ${career.description}",
-      ));
+      _messages.add(
+        ChatMessage(
+          role: "ai",
+          content:
+              "${career.title} (${career.industry})\n"
+              "Skills: ${career.skills.join(", ")}\n"
+              "Salary: ${career.salaryRange}\n"
+              "Description: ${career.description}",
+        ),
+      );
     });
 
     for (final level in paths) {
       setState(() {
-        _messages.add(ChatMessage(
-          role: "ai",
-          content: "➡️ ${level.levelName}: ${level.description}\n"
-              "Skills: ${level.skills.join(", ")}\n"
-              "Salary: ${level.salaryRange}",
-        ));
+        _messages.add(
+          ChatMessage(
+            role: "ai",
+            content:
+                "Level: ${level.levelName}: ${level.description}\n"
+                "Skills: ${level.skills.join(", ")}\n"
+                "Salary: ${level.salaryRange}",
+          ),
+        );
       });
     }
 
     setState(() {
-      _messages.add(ChatMessage(
-        role: "ai",
-        content: "Do you want to open the detailed page for $title?",
-        suggestions: ["Open page $title"],
-      ));
+      _messages.add(
+        ChatMessage(
+          role: "ai",
+          content: "Do you want to open the detailed page for $title?",
+          suggestions: ["Open page $title"],
+        ),
+      );
     });
 
     _mode = ChatMode.careerInfo;
@@ -179,11 +194,14 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
         final info = result["data"];
         final List<TeamMember> members = info["members"];
         setState(() {
-          _messages.add(ChatMessage(
-            role: "ai",
-            content: "Meet our team:\n" +
-                members.map((m) => "${m.name} - ${m.email}").join("\n"),
-          ));
+          _messages.add(
+            ChatMessage(
+              role: "ai",
+              content:
+                  "Meet our team:\n" +
+                  members.map((m) => "${m.name} - ${m.email}").join("\n"),
+            ),
+          );
         });
         break;
       default:
@@ -210,10 +228,12 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
     } catch (e) {
       setState(() {
         _messages.removeWhere((m) => m.role == "loading");
-        _messages.add(ChatMessage(
-          role: "ai",
-          content: "Something went wrong. Please try again later.",
-        ));
+        _messages.add(
+          ChatMessage(
+            role: "ai",
+            content: "Something went wrong. Please try again later.",
+          ),
+        );
       });
     } finally {
       _loading = false;
@@ -233,7 +253,10 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
@@ -267,19 +290,24 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Lottie.asset("assets/lottie/loading_chat.json",
-                          width: 60, height: 40),
+                      Lottie.asset(
+                        "assets/lottie/loading_chat.json",
+                        width: 60,
+                        height: 40,
+                      ),
                     ],
                   );
                 }
 
                 return Column(
-                  crossAxisAlignment:
-                      isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  crossAxisAlignment: isUser
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment:
-                          isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                      mainAxisAlignment: isUser
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.start,
                       children: [
                         if (isBot)
                           const CircleAvatar(
@@ -302,19 +330,22 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
                         ),
                       ],
                     ),
-                    if (msg.suggestions != null && msg.suggestions!.isNotEmpty) ...[
+                    if (msg.suggestions != null &&
+                        msg.suggestions!.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: msg.suggestions!
-                            .map((s) => SuggestionChip(
-                                  label: s,
-                                  onTap: () => _sendMessage(s),
-                                ))
+                            .map(
+                              (s) => SuggestionChip(
+                                label: s,
+                                onTap: () => _sendMessage(s),
+                              ),
+                            )
                             .toList(),
                       ),
-                    ]
+                    ],
                   ],
                 );
               },
@@ -352,11 +383,11 @@ class _CoachingChatPageState extends State<CoachingChatPage> {
                           ? null
                           : () => _sendMessage(_controller.text.trim()),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );

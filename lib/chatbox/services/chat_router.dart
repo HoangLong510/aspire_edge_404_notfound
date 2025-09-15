@@ -3,7 +3,6 @@ import 'team_service.dart';
 
 class ChatRouter {
   final CareerService _careerService = CareerService();
-  final TeamService _teamService = TeamService();
 
   Future<String> detectTopic(String text) async {
     final lower = text.toLowerCase();
